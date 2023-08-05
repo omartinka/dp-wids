@@ -13,6 +13,7 @@ MAIN_FILE = main.c
 
 # Flags
 CFLAGS = -I$(INCLUDE_DIR)
+LIBS = -lpcap
 
 # Targets
 EXECUTABLE = wids-sensor
@@ -20,7 +21,7 @@ EXECUTABLE = wids-sensor
 all: $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJ_FILES) $(MAIN_FILE:.c=.o)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	mkdir -p $(BUILD_DIR)

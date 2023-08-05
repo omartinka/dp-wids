@@ -1,12 +1,13 @@
 #include "../include/config.h"
 
-argstore_t __config = {0};
-argstore_t *config = &__config;
-
+char _errmsg[WIDS_ERR_SIZE] = {0};
 const char *__color_red    = "\033[31m";
 const char *__color_blue   = "\033[34m";
 const char *__color_yellow = "\033[33m";
 const char *__color_reset  = "\033[0m";
+
+argstore_t __config = {0};
+argstore_t *config = &__config;
 
 /* 
  * Logging function with verbosity parameter 
@@ -45,13 +46,28 @@ void usage(const char *program_name) {
     printf("  -h                 Display help message and exit\n");
 }
 
+void seterr(const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+  vsnprintf(_errmsg, WIDS_ERR_SIZE, format, args);
+  va_end(args);
+}
+
 void errmsg(err_t _err) {
   vlog(V_ERROR, "program failed with error code %d\n", _err);
+  if (_errmsg[0] != 0) {
+    vlog(V_ERROR, "description: %s\n", _errmsg);
+  } else {
+    vlog(V_ERROR, "no error description supplied\n");
+  }
   return;
 }
 
 err_t parse_args(int argc, char *argv[]) {
   int opt = 0;
+  
+  // default values
+  config->verbosity = 3;
 
   while (opt != -1) {
     opt = getopt(argc, argv, "hu:t:v:i:d");

@@ -10,11 +10,12 @@ int main(int argc, char *argv[]) {
     usage(argv[0]);
     return (int)err;
   }
-  
-  vlog(V_NONE, "none test\n");
-  vlog(V_ERROR, "error test\n");
-  vlog(V_INFO, "info test\n");
-  vlog(V_DEBUG, "debug test\n");
+
+  err = validate_interface();
+  if (err != OK) {
+    errmsg(err);
+    return (int)err;
+  }
 
   return 0;
 }
