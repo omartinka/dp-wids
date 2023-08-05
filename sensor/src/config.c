@@ -3,6 +3,37 @@
 argstore_t __config = {0};
 argstore_t *config = &__config;
 
+const char *__color_red    = "\033[31m";
+const char *__color_blue   = "\033[34m";
+const char *__color_yellow = "\033[33m";
+const char *__color_reset  = "\033[0m";
+
+/* 
+ * Logging function with verbosity parameter 
+ * 
+ * @_verbosity: specifies the verbosity level - V_ERROR, V_INFO or V_DEBUG
+ * @_format: string format, rest is just as in printf()
+ */
+void vlog(verbosity_t _verbosity, const char *format, ...) {
+  if (config->verbosity >= (int)_verbosity && config->verbosity != V_NONE && _verbosity != V_NONE) {
+    va_list args;
+    va_start(args, format);
+    switch(_verbosity) {
+      case V_ERROR:
+        printf("%s[error]%s ", __color_red, __color_reset);
+        break;
+      case V_INFO:
+        printf("%s[info]%s  ", __color_blue, __color_reset);
+        break;
+      case V_DEBUG:
+        printf("%s[debug]%s ", __color_yellow, __color_reset);
+        break;
+    }
+    vprintf(format, args);
+    va_end(args);
+  }
+}
+
 void usage(const char *program_name) {
     printf("Usage: %s -i <interface> [-u <ip> | -t <ip>] [-v <0-3>] [-d] [-h]\n", program_name);
     printf("Options:\n");
@@ -15,17 +46,21 @@ void usage(const char *program_name) {
 }
 
 void errmsg(err_t _err) {
+  vlog(V_ERROR, "program failed with error code %d\n", _err);
   return;
 }
 
 err_t parse_args(int argc, char *argv[]) {
-  int opt;
+  int opt = 0;
 
   while (opt != -1) {
     opt = getopt(argc, argv, "hu:t:v:i:d");
     switch (opt) {
       case 'h':
         return ERR_USAGE;
+      case 'i':
+        config->interface = optarg;
+        break;
       case 'u':
         config->udp = 1;
         config->addr = optarg;
@@ -38,7 +73,7 @@ err_t parse_args(int argc, char *argv[]) {
         config->verbosity = atoi(optarg);
         break;
       case 'd':
-        config->daemon = atoi(optarg);
+        config->daemon = 1;
         break;
       default:
         break;
