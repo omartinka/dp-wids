@@ -1,0 +1,4 @@
+/sensor/build
+/sensor/build/*
+/sensor/*.o
+/sensor/wids-sensor
