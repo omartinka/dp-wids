@@ -12,15 +12,8 @@
 typedef enum {
   OK = 0,
   ERR_USAGE = 1,
-  ERR_BOTH_CONN_TYPES = 2,
-  ERR_CONN_TYPE_NOT_SUPPLIED = 3,
-  ERR_INTERFACE_NOT_SUPPLIED = 4,
-  ERR_UNKNOWN_VERBOSITY = 5,
-  ERR_IF_NOT_FOUND = 6,
-  ERR_PCAP_GENERIC = 7,
-  ERR_VALIDATE_INTERFACE = 8,
-  ERR_SNIFF = 9,
-  ERR_GENERIC = 10
+  ERR = 2,
+  ERR_GENERIC = 3
 } err_t;
 
 typedef enum {
@@ -35,6 +28,7 @@ typedef struct {
   int tcp;
   int udp;
   char *addr;
+  int port;
   char *interface;
   int verbosity;
 } argstore_t;

@@ -70,7 +70,7 @@ err_t parse_args(int argc, char *argv[]) {
   config->verbosity = 3;
 
   while (opt != -1) {
-    opt = getopt(argc, argv, "hu:t:v:i:d");
+    opt = getopt(argc, argv, "hu:t:p:v:i:d");
     switch (opt) {
       case 'h':
         return ERR_USAGE;
@@ -85,6 +85,9 @@ err_t parse_args(int argc, char *argv[]) {
         config->tcp = 1;
         config->addr = optarg;
         break;
+      case 'p':
+        config->port = atoi(optarg);
+        break;
       case 'v':
         config->verbosity = atoi(optarg);
         break;
@@ -97,20 +100,29 @@ err_t parse_args(int argc, char *argv[]) {
   }
 
   if (config->tcp && config->udp) {
-    return ERR_BOTH_CONN_TYPES;
+    seterr("only one connection type needs to be supploed! (got both udp and tcp!)");
+    return ERR;
   }
 
   if (config->interface == NULL) {
-    return ERR_INTERFACE_NOT_SUPPLIED;
+    seterr("no network interface supplied! (use `-i`)");
+    return ERR;
   }
 
   if (config->tcp + config->udp != 1) {
-    return ERR_CONN_TYPE_NOT_SUPPLIED;
+    seterr("no connection type supplied!");
+    return ERR;
   }
 
   if (config->verbosity < 0 || config->verbosity > 3) {
-    return ERR_UNKNOWN_VERBOSITY; 
+    seterr("unknown verbosity. use values 0-3");
+    return ERR; 
   }
+
+  if (config->port <= 0 || config->port > 65535) {
+    seterr("port needs to be 1-65535, not `%d.`", config->port);
+    return ERR;
+  } 
 
   return OK;
 }

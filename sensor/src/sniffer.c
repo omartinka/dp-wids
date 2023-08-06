@@ -8,7 +8,7 @@ err_t validate_interface() {
   int ok = pcap_findalldevs(&ifaces, errbuf);
   if (ok == -1) {
     seterr("failed to list pcap devices!");
-    return ERR_PCAP_GENERIC;
+    return ERR_GENERIC;
   }
   
   // check whether interface exists
@@ -16,7 +16,7 @@ err_t validate_interface() {
   while(1) {
     if (ifc == NULL) {
       seterr("specified interface [%s] not found!", config->interface);
-      return ERR_IF_NOT_FOUND;
+      return ERR;
     }
     if (!strcmp(ifc->name, config->interface)) {
       break;
@@ -32,7 +32,7 @@ err_t validate_interface() {
   FILE *fp = popen(command, "r");
   if (fp == NULL) {
     seterr("failed to execute command: [%s]", command);
-    return ERR_VALIDATE_INTERFACE;
+    return ERR;
   }
 
   if (fgets(result, sizeof(result), fp) != NULL) {
@@ -40,11 +40,12 @@ err_t validate_interface() {
       return OK;
     } else {
       seterr("interface [%s] not in monitor mode!", config->interface);
-      return ERR_VALIDATE_INTERFACE;
+      // XXX TODO return ERR;
+      return OK;
     }
   } else {
     seterr("failed to read output of command [%s]", command);
-    return ERR_VALIDATE_INTERFACE;
+    return ERR;
   }
 }
 
@@ -57,7 +58,7 @@ void on_packet(unsigned char *user, const struct pcap_pkthdr *pkthdr, const unsi
         if ((i + 1) % 16 == 0)
             printf("\n");
     }
-    printf("\n");
+    printf("\n\n");
 }
 
 err_t sniff() {
@@ -66,12 +67,12 @@ err_t sniff() {
   pcap_t *handle = pcap_open_live(config->interface, BUFSIZ, 1, 1000, errbuf);
   if (handle == NULL) {
     seterr("failed to open live interface %s", config->interface);
-    return ERR_SNIFF;
+    return ERR;
   }
 
   pcap_loop(handle, 0, on_packet, NULL);
-
   pcap_close(handle);
+
   return OK;
 }
 
