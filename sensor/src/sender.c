@@ -48,6 +48,8 @@ err_t send_data(conn_t *conn, const char *data, int len) {
 }
 
 err_t _send_udp(conn_t *conn, const char *data, int len) {
+  // TODO utlize `buffer` and `curr` in conn_t struct to send `WIDS_BUF_LEN` frames at once
+
   ssize_t sent_bytes = sendto(
     conn->sock_fd,
     data,

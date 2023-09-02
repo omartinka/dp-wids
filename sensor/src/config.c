@@ -39,8 +39,9 @@ void usage(const char *program_name) {
     printf("Usage: %s -i <interface> [-u <ip> | -t <ip>] [-v <0-3>] [-d] [-h]\n", program_name);
     printf("Options:\n");
     printf("  -i <interface>     Specify the interface to listen on (required)\n");
-    printf("  -u <ip:port>       Use UDP to transfer frames to specified IP address and port\n");
-    printf("  -t <ip:port>       Use TCP to transfer frames and specify the listen IP address and port\n");
+    printf("  -u <host>          UDP destination IP or hostname of logger module\n");
+    printf("  -t <host>          use TCP connection: specify IP/hostname of expected logger module\n");
+    printf("  -p <port>          Destination port if udp mode is used, local listening port if tcp is used");
     printf("  -v <0-3>           Set verbosity level (0-3)\n");
     printf("  -d                 Run as a daemon\n");
     printf("  -h                 Display help message and exit\n");

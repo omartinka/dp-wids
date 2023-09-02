@@ -26,10 +26,8 @@ int main(int argc, char *argv[]) {
   const char *data = "hello testing stuff";
   send_data(&conn, data, strlen(data));
 
-  return 0;
-
   vlog(V_INFO, "started sniffing on interface %s\n", config->interface);
-  sniff();
+  sniff(&conn);
   
   vlog(V_INFO, "all done.");
   return 0;

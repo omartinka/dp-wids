@@ -49,7 +49,7 @@ err_t validate_interface() {
   }
 }
 
-void on_packet(unsigned char *user, const struct pcap_pkthdr *pkthdr, const unsigned char *packet) {
+void on_packet(unsigned char *conn, const struct pcap_pkthdr *pkthdr, const unsigned char *packet) {
     const unsigned char *wlan_packet = packet;
 
     // Print the raw packet data (hexadecimal)
@@ -59,9 +59,11 @@ void on_packet(unsigned char *user, const struct pcap_pkthdr *pkthdr, const unsi
             printf("\n");
     }
     printf("\n\n");
+
+    send_data( (conn_t *) conn, packet, pkthdr->len);
 }
 
-err_t sniff() {
+err_t sniff(conn_t *conn) {
   char errbuf[PCAP_ERRBUF_SIZE];
 
   pcap_t *handle = pcap_open_live(config->interface, BUFSIZ, 1, 1000, errbuf);
@@ -70,7 +72,7 @@ err_t sniff() {
     return ERR;
   }
 
-  pcap_loop(handle, 0, on_packet, NULL);
+  pcap_loop(handle, 0, on_packet, (unsigned char *)conn);
   pcap_close(handle);
 
   return OK;

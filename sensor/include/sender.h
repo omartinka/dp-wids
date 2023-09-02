@@ -1,6 +1,8 @@
 #ifndef SENDER_H
 #define SENDER_H
 
+#define WIDS_BUF_LEN
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +11,8 @@
 typedef struct {
   int sock_fd;
   struct sockaddr_in serv_addr;
+  int curr;
+  char* buffer[WIDS_BUF_LEN];
 } conn_t;
 
 err_t setup_conn(conn_t *conn);
