@@ -1,12 +1,15 @@
 package main
 
 import (
-  "analyzer/context"
-  "analyzer/logging"
+  "wids/context"
+  "wids/logging"
+  "wids/analyze"
 )
 
 func main() {
   logging.Init()
 
-  context.ParseArgs()
+  context.Init()
+
+  analyze.Init()
 }
