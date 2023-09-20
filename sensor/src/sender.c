@@ -31,7 +31,26 @@ err_t _setup_udp(conn_t *conn) {
 }
 
 err_t _setup_tcp(conn_t *conn) {
-  return ERR_GENERIC;
+  conn->sock_fd = socket(AF_INET, SOCK_STREAM, 0);
+  if (conn->sock_fd == -1) {
+    seterr("failed to create tcp socket");
+    return ERR_GENERIC;
+  }
+
+  conn->serv_addr.sin_family = AF_INET;
+  conn->serv_addr.sin_port = htons(config->port);
+
+  if (inet_pton(AF_INET, config->addr, &conn->serv_addr.sin_addr) <= 0) {
+    seterr("invalid address supplied: `%s`", config->addr);
+    return ERR_GENERIC;
+  }
+  
+  if (connect(conn->sock_fd, (struct sockaddr *)&conn->serv_addr, sizeof(conn->serv_addr)) == -1) {
+    seterr("could not connect to server `%s`.", config->addr);
+    return ERR_GENERIC;
+  }
+
+  return OK;
 }
 
 err_t send_data(conn_t *conn, const char *data, int len) {
@@ -68,6 +87,12 @@ err_t _send_udp(conn_t *conn, const char *data, int len) {
 }
 
 err_t _send_tcp(conn_t *conn, const char *data, int len) {
-  seterr("not implemented.");
-  return ERR_GENERIC;
+  ssize_t sent_bytes = send(conn->sock_fd, data, len, 0);
+
+  if (sent_bytes == -1) {
+    seterr("failed to send tcp data `%s` to `%s:%d`", data, config->addr, config->port);
+    return ERR_GENERIC;
+  }
+
+  return OK;
 }
