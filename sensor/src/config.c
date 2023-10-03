@@ -13,7 +13,7 @@ argstore_t *config = &__config;
 /* 
  * Logging function with verbosity parameter 
  * 
- * @_verbosity: specifies the verbosity level - V_ERROR, V_INFO or V_DEBUG
+ * @_verbosity: specifies the verbosity level - V_ERROR, V_INFO, V_DEBUG or V_TRACE
  * @_format: string format, rest is just as in printf()
  */
 void vlog(verbosity_t _verbosity, const char *format, ...) {
@@ -46,7 +46,7 @@ void usage(const char *program_name) {
     printf("  -u <host>          UDP destination IP or hostname of logger module\n");
     printf("  -t <host>          use TCP connection: specify IP/hostname of expected logger module\n");
     printf("  -p <port>          Destination port if udp mode is used, local listening port if tcp is used");
-    printf("  -v <0-3>           Set verbosity level (0-3)\n");
+    printf("  -v <0-4>           Set verbosity level (0-4)\n");
     printf("  -d                 Run as a daemon\n");
     printf("  -h                 Display help message and exit\n");
 }
@@ -70,6 +70,11 @@ void errmsg(err_t _err) {
 
 err_t parse_args(int argc, char *argv[]) {
   int opt = 0;
+
+  if (argc < 2) {
+    usage(argv[0]);
+    return ERR_USAGE;
+  }
   
   // default values
   config->verbosity = 3;
