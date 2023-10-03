@@ -51,14 +51,7 @@ err_t validate_interface() {
 
 void on_packet(unsigned char *conn, const struct pcap_pkthdr *pkthdr, const unsigned char *packet) {
     const unsigned char *wlan_packet = packet;    
-
-    // for(int i =0; i <pkthdr->len; i++) {
-    //   printf("%d ", packet[i]);
-    // }
-    // printf("\n\n");
-    // exit(0);
-
-    err_t err = send_data( (conn_t *) conn, wlan_packet+8, pkthdr->len-8);
+    err_t err = send_data( (conn_t *) conn, wlan_packet, pkthdr->len);
     if (err != OK) {
       errmsg(err);
     }
