@@ -8,6 +8,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <time.h>
+#include <stdint.h>
 
 // TODO add a timestamp, and some logic around it, 
 // so the data wont be stuck in the buffer forever in case of small traffic

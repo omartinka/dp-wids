@@ -5,6 +5,8 @@ err_t setup_conn(conn_t *conn) {
   conn->size_total = WIDS_BUF_LEN;
   conn->size_curr = 0;
 
+  vlog(V_INFO, "frame length size is %d bytes\n", sizeof(uint16_t));
+  
   if (config->tcp) {
     return _setup_tcp(conn);
   }
@@ -56,14 +58,26 @@ err_t _setup_tcp(conn_t *conn) {
   return OK;
 }
 
-err_t send_data(conn_t *conn, const char *data, int len) {
+err_t send_data(conn_t *conn, const char *data, int _len) {
   if (!config->udp && !config->tcp) {
     seterr("no connection type supplied (needs tcp/udp!)");
     return ERR_GENERIC;
   }
+
+  if (_len < 0) {
+    seterr("send_data received negative length. error probably in sniffing.");
+    return ERR_GENERIC;
+  }
   
+  int len = (uint16_t)_len;
   // if there is space in the buffer, fill it.
-  if (len + conn->size_curr < conn->size_total) {
+  if (sizeof(uint16_t) + len + conn->size_curr < conn->size_total) {
+    // write the length of the frame so they can be disguished (is that a word?)
+    uint16_t _nlen = htons(len);
+    memcpy(conn->buffer + conn->size_curr, &_nlen, sizeof(uint16_t));
+    conn->size_curr += sizeof(uint16_t);
+
+    // write the length of the frame to first two bytes
     memcpy(conn->buffer + conn->size_curr, data, len);
     conn->size_curr += len;
     vlog(V_TRACE, "appending data to buffer, length: %d->%d/%d\n", conn->size_curr-len, conn->size_curr, conn->size_total);
@@ -87,11 +101,20 @@ err_t send_data(conn_t *conn, const char *data, int len) {
       return ERR_GENERIC;
     }
   }
+
+  // reset buffer
+  int _bytes_sent = conn->size_curr;
+  conn->size_curr = 0;
+  
+  // write the length of the frame
+  uint16_t _nlen = htons(len);
+  memcpy(conn->buffer + conn->size_curr, &_nlen, sizeof(uint16_t));
+  conn->size_curr += sizeof(uint16_t);
   
   // write new data to 'empty' buffer
-  vlog(V_DEBUG, "sent %d bytes, buffer now at %d.\n", conn->size_curr, len);
-  memcpy(conn->buffer, data, len);
-  conn->size_curr = len;
+  vlog(V_DEBUG, "sent %d bytes, buffer now: %d->%d.\n", _bytes_sent, conn->size_curr, conn->size_curr+len);
+  memcpy(conn->buffer+conn->size_curr, data, len);
+  conn->size_curr += len;
 
   return OK;
 }
