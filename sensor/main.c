@@ -22,13 +22,15 @@ int main(int argc, char *argv[]) {
   vlog(V_DEBUG, "connection init\n");
   conn_t conn;
   setup_conn(&conn);
-  vlog(V_DEBUG, "sending data\n");
-  const char *data = "hello testing stuff";
-  send_data(&conn, data, strlen(data));
 
   vlog(V_INFO, "started sniffing on interface %s\n", config->interface);
-  sniff(&conn);
+  err = sniff(&conn);
   
-  vlog(V_INFO, "all done.");
+  if (err != OK) {
+    errmsg(err);
+    return (int)err;
+  }
+
+  vlog(V_INFO, "all done.\n");
   return 0;
 }

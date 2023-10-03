@@ -17,10 +17,11 @@ typedef enum {
 } err_t;
 
 typedef enum {
-  V_NONE = 0,
-  V_ERROR = 1,
-  V_INFO = 2,
-  V_DEBUG = 3
+  V_NONE = 0,   // no output
+  V_ERROR = 1,  // only errors
+  V_INFO = 2,   // 
+  V_DEBUG = 3,  // garbage but helpful
+  V_TRACE = 4   // bunch of bullshit, worthless in most cases
 } verbosity_t;
 
 typedef struct {

@@ -2,6 +2,9 @@
 #include "../include/sender.h"
 
 err_t setup_conn(conn_t *conn) {
+  conn->size_total = WIDS_BUF_LEN;
+  conn->size_curr = 0;
+
   if (config->tcp) {
     return _setup_tcp(conn);
   }
@@ -54,45 +57,74 @@ err_t _setup_tcp(conn_t *conn) {
 }
 
 err_t send_data(conn_t *conn, const char *data, int len) {
+  if (!config->udp && !config->tcp) {
+    seterr("no connection type supplied (needs tcp/udp!)");
+    return ERR_GENERIC;
+  }
+  
+  // if there is space in the buffer, fill it.
+  if (len + conn->size_curr < conn->size_total) {
+    memcpy(conn->buffer + conn->size_curr, data, len);
+    conn->size_curr += len;
+    vlog(V_TRACE, "appending data to buffer, length: %d->%d/%d\n", conn->size_curr-len, conn->size_curr, conn->size_total);
+    return OK;
+  }
+
+  // if there is no space in the buffer, send the contents
+  err_t err;
   if (config->udp) {
-    return _send_udp(conn, data, len);
+    err = _send_udp(conn);
+    if (err != OK) {
+      seterr("failed to send udp data in _send_udp, sender.c!");
+      return ERR_GENERIC;
+    }
   }
   
   if (config->tcp) {
-    return _send_tcp(conn, data, len);
+    err = _send_tcp(conn);
+    if (err != OK) {
+      seterr("failed to send tcp data in _send_tcp, sender.c!");
+      return ERR_GENERIC;
+    }
   }
+  
+  // write new data to 'empty' buffer
+  vlog(V_DEBUG, "sent %d bytes, buffer now at %d.\n", conn->size_curr, len);
+  memcpy(conn->buffer, data, len);
+  conn->size_curr = len;
 
-  seterr("no connection type supplied (needs tcp/udp!)");
-  return ERR_GENERIC;
+  return OK;
 }
 
-err_t _send_udp(conn_t *conn, const char *data, int len) {
+err_t _send_udp(conn_t *conn) {
   // TODO utlize `buffer` and `curr` in conn_t struct to send `WIDS_BUF_LEN` frames at once
 
   ssize_t sent_bytes = sendto(
     conn->sock_fd,
-    data,
-    len,
+    conn->buffer,
+    conn->size_curr,
     0,
     (const struct sockaddr *)&conn->serv_addr,
     sizeof(conn->serv_addr)
   );
 
   if (sent_bytes == -1) {
-    seterr("failed to send udp data `%s` to `%s:%d`", data, config->addr, config->port);
+    seterr("failed to send udp data to `%s:%d`", config->addr, config->port);
     return ERR_GENERIC;
   }
 
   return OK;
 }
 
-err_t _send_tcp(conn_t *conn, const char *data, int len) {
-  ssize_t sent_bytes = send(conn->sock_fd, data, len, 0);
-
-  if (sent_bytes == -1) {
-    seterr("failed to send tcp data `%s` to `%s:%d`", data, config->addr, config->port);
-    return ERR_GENERIC;
+err_t _send_tcp(conn_t *conn) {
+  ssize_t total_sent = 0;
+  while (total_sent < conn->size_curr) {
+    ssize_t sent_bytes = send(conn->sock_fd, conn->buffer, conn->size_curr, 0);
+    if (sent_bytes == -1) {
+      seterr("failed to send tcp data `to `%s:%d`", config->addr, config->port);
+      return ERR_GENERIC;
+    }
+    total_sent += sent_bytes;
   }
-
   return OK;
 }

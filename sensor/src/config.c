@@ -4,6 +4,7 @@ char _errmsg[WIDS_ERR_SIZE] = {0};
 const char *__color_red    = "\033[31m";
 const char *__color_blue   = "\033[34m";
 const char *__color_yellow = "\033[33m";
+const char *__color_gray   = "\033[90m";
 const char *__color_reset  = "\033[0m";
 
 argstore_t __config = {0};
@@ -28,6 +29,9 @@ void vlog(verbosity_t _verbosity, const char *format, ...) {
         break;
       case V_DEBUG:
         printf("%s[debug]%s ", __color_yellow, __color_reset);
+        break;
+      case V_TRACE:
+        printf("%s[trace]%s", __color_gray, __color_reset);
         break;
     }
     vprintf(format, args);
@@ -115,8 +119,8 @@ err_t parse_args(int argc, char *argv[]) {
     return ERR;
   }
 
-  if (config->verbosity < 0 || config->verbosity > 3) {
-    seterr("unknown verbosity. use values 0-3");
+  if (config->verbosity < 0 || config->verbosity > 4) {
+    seterr("unknown verbosity. use values 0-4");
     return ERR; 
   }
 

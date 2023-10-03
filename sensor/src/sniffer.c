@@ -50,17 +50,18 @@ err_t validate_interface() {
 }
 
 void on_packet(unsigned char *conn, const struct pcap_pkthdr *pkthdr, const unsigned char *packet) {
-    const unsigned char *wlan_packet = packet;
+    const unsigned char *wlan_packet = packet;    
 
-    // Print the raw packet data (hexadecimal)
-    for (int i = 0; i < pkthdr->len - 8; i++) {
-        printf("%02x ", wlan_packet[i]);
-        if ((i + 1) % 16 == 0)
-            printf("\n");
+    // for(int i =0; i <pkthdr->len; i++) {
+    //   printf("%d ", packet[i]);
+    // }
+    // printf("\n\n");
+    // exit(0);
+
+    err_t err = send_data( (conn_t *) conn, wlan_packet+8, pkthdr->len-8);
+    if (err != OK) {
+      errmsg(err);
     }
-    printf("\n\n");
-
-    send_data( (conn_t *) conn, packet, pkthdr->len);
 }
 
 err_t sniff(conn_t *conn) {
@@ -72,7 +73,7 @@ err_t sniff(conn_t *conn) {
     return ERR;
   }
 
-  pcap_loop(handle, 0, on_packet, (unsigned char *)conn);
+  pcap_loop(handle, -1, on_packet, (unsigned char *)conn);
   pcap_close(handle);
 
   return OK;
