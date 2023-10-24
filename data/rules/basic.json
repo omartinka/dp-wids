@@ -1,0 +1,41 @@
+{
+  "rules": [
+    {
+      "id": 1,
+      "on": ["beacon", "probe_resp"],
+      "class": "mitm",
+      "cooldown": "1m",
+      "type": "alert",
+      "msg": "possible evil twin attack",
+      "indicators": [
+        {
+          "id": "unknown ssid-mac combination",
+          "on": ["beacon", "probe_resp"],
+          "attrs": {
+              "ssid": "$home",
+              "mac": "!$home"
+          }
+        }
+      ]
+    }, {
+      "id": 2,
+      "on": ["beacon"],
+      "class": "dos",
+      "cooldown": "1m",
+      "type": "alert",
+      "msg": "ssid flooding",
+      "indicators": [
+        {
+          "id": "large amount of unique ssids",
+          "on": ["beacon"],
+          "attrs": {
+            "ssid-count": {
+              "op": ">8",
+              "isnot": ["$home"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

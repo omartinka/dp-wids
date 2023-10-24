@@ -1,3 +1,4 @@
+*.pyc
 /sensor/build
 /sensor/build/*
 /sensor/*.o
