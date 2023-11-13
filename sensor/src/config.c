@@ -158,5 +158,10 @@ err_t parse_args(int argc, char *argv[]) {
     return ERR;
   }
 
+  if (config->hello_msg == NULL) {
+    seterr("hello msg not set!");
+    return ERR;
+  }
+
   return OK;
 }

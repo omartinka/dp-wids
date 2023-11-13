@@ -1,7 +1,7 @@
 #ifndef SENDER_H
 #define SENDER_H
 
-#define WIDS_BUF_LEN 4096
+#define WIDS_BUF_LEN 1024
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +20,9 @@ typedef struct {
   char buffer[WIDS_BUF_LEN];    // buffer
   int ok;                       // whether connection is initialized
 } conn_t;
+
+static  void __reset_conn(conn_t *conn);
+static err_t __send_hello(conn_t *conn);
 
 err_t setup_conn(conn_t *conn);
 err_t _setup_udp(conn_t *conn);

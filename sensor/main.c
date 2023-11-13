@@ -21,11 +21,15 @@ int main(int argc, char *argv[]) {
   
   vlog(V_DEBUG, "connection init\n");
   conn_t conn;
-  setup_conn(&conn);
-
+  err = setup_conn(&conn);
+  if (err != OK) {
+    errmsg(err);
+    return (int)err;
+  }
   vlog(V_INFO, "started sniffing on interface %s\n", config->interface);
   err = sniff(&conn);
-  
+  vlog(V_INFO, "sniffing done\n");
+
   if (err != OK) {
     errmsg(err);
     return (int)err;
