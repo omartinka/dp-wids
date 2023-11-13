@@ -18,6 +18,7 @@ typedef struct {
   int size_curr;                // how many butes of the buffer are used
   int size_total;               // what is the size of the buffer - WIDS_BUF_LEN
   char buffer[WIDS_BUF_LEN];    // buffer
+  int ok;                       // whether connection is initialized
 } conn_t;
 
 err_t setup_conn(conn_t *conn);

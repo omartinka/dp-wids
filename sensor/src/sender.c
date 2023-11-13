@@ -1,6 +1,39 @@
 #include "../include/config.h"
 #include "../include/sender.h"
 
+/*
+ * Sends a `hello` message and waits for response from the logger module
+ * so the modules are sync'd.
+ */
+static err_t __send_hello(conn_t *conn) {
+  char buffer[64];
+  
+  int id_len  = strlen(config->sensor_id);
+  int msg_len = strlen(config->hello_msg);
+
+  memcpy(buffer, config->sensor_id, id_len);
+  memcpy(buffer+32, config->hello_msg, msg_len);
+
+  ssize_t sb = send(conn->sock_fd, buffer, 64, 0);
+  if (sb == -1) {
+    seterr("failed to send init message!");
+    return ERR_GENERIC;
+  }
+
+  // wait for response so we know its ok
+  char recv_buf[64];
+  ssize_t rb = recv(conn->sock_fd, recv_buf, sizeof(recv_buf), 0);
+  
+  if (rb == -1) {
+    seterr("failed to receive response from logger module!");
+    return ERR_GENERIC;
+  }
+  
+  // memcmp ? not necessary i think
+
+  return OK;
+}
+
 err_t setup_conn(conn_t *conn) {
   conn->size_total = WIDS_BUF_LEN;
   conn->size_curr = 0;
@@ -55,6 +88,13 @@ err_t _setup_tcp(conn_t *conn) {
     return ERR_GENERIC;
   }
 
+  err_t err = __send_hello(conn);
+  if (err != OK) {
+    errmsg(ERR);
+    return err;
+  }
+
+  conn->ok = 1;
   return OK;
 }
 
@@ -140,6 +180,10 @@ err_t _send_udp(conn_t *conn) {
 }
 
 err_t _send_tcp(conn_t *conn) {
+  if (!conn->ok) {
+    seterr("tcp connection not initialized!");
+    return ERR_GENERIC;
+  }
   ssize_t total_sent = 0;
   while (total_sent < conn->size_curr) {
     ssize_t sent_bytes = send(conn->sock_fd, conn->buffer, conn->size_curr, 0);

@@ -40,15 +40,22 @@ void vlog(verbosity_t _verbosity, const char *format, ...) {
 }
 
 void usage(const char *program_name) {
-    printf("Usage: %s -i <interface> [-u <ip> | -t <ip>] [-v <0-3>] [-d] [-h]\n", program_name);
+    printf("Usage: %s [ options ]\n", program_name);
     printf("Options:\n");
-    printf("  -i <interface>     Specify the interface to listen on (required)\n");
-    printf("  -u <host>          UDP destination IP or hostname of logger module\n");
-    printf("  -t <host>          use TCP connection: specify IP/hostname of expected logger module\n");
-    printf("  -p <port>          Destination port if udp mode is used, local listening port if tcp is used");
-    printf("  -v <0-4>           Set verbosity level (0-4)\n");
-    printf("  -d                 Run as a daemon\n");
-    printf("  -h                 Display help message and exit\n");
+    printf("  -i <interface> Specify the interface to listen on (r)\n");
+    printf("  -u             Use UDP for communication [broken] (r0*)\n");
+    printf("  -t             Use TCP for communication (r0*)\n");
+    printf("  -a <addr>      IP/hostname of logger module (r)\n");
+    printf("  -p <port>      Port of logger module (r)\n");
+    printf("  -n <name>      Identification name of sensor node (r)\n");
+    printf("  -m <msg>       Initialization message for module synchronization (r)\n");
+    printf("  -v <0-4>       Set verbosity level (0-4)\n");
+    printf("  -d             Run as a daemon\n");
+    printf("  -h             Display help message and exit\n");
+    printf("\n");
+    printf("Info:\n");
+    printf(" - options labeled as (r) are required\n");
+    printf(" - at least one of options labeled as (r[x]*) is required per [x]\n");
 }
 
 void seterr(const char *format, ...) {
@@ -80,7 +87,7 @@ err_t parse_args(int argc, char *argv[]) {
   config->verbosity = 3;
 
   while (opt != -1) {
-    opt = getopt(argc, argv, "hu:t:p:v:i:d");
+    opt = getopt(argc, argv, "huta:p:v:i:dn:m:");
     switch (opt) {
       case 'h':
         return ERR_USAGE;
@@ -89,10 +96,11 @@ err_t parse_args(int argc, char *argv[]) {
         break;
       case 'u':
         config->udp = 1;
-        config->addr = optarg;
         break;
       case 't':
         config->tcp = 1;
+        break;
+      case 'a':
         config->addr = optarg;
         break;
       case 'p':
@@ -104,6 +112,12 @@ err_t parse_args(int argc, char *argv[]) {
       case 'd':
         config->daemon = 1;
         break;
+      case 'n':
+        config->sensor_id = optarg;
+        break;
+      case 'm':
+        config->hello_msg = optarg;
+        break;
       default:
         break;
     }
@@ -111,6 +125,11 @@ err_t parse_args(int argc, char *argv[]) {
 
   if (config->tcp && config->udp) {
     seterr("only one connection type needs to be supploed! (got both udp and tcp!)");
+    return ERR;
+  }
+
+  if (config->addr == NULL) {
+    seterr("logger module not specified! (use -a)");
     return ERR;
   }
 
@@ -132,7 +151,12 @@ err_t parse_args(int argc, char *argv[]) {
   if (config->port <= 0 || config->port > 65535) {
     seterr("port needs to be 1-65535, not `%d.`", config->port);
     return ERR;
-  } 
+  }
+
+  if (config->sensor_id == NULL) {
+    seterr("sensor ID not set!");
+    return ERR;
+  }
 
   return OK;
 }

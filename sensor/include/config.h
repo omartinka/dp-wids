@@ -32,6 +32,8 @@ typedef struct {
   int port;
   char *interface;
   int verbosity;
+  char *sensor_id;
+  char *hello_msg;
 } argstore_t;
 
 extern char _errmsg[WIDS_ERR_SIZE];
