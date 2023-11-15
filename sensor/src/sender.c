@@ -13,7 +13,7 @@ static void __reset_conn(conn_t *conn) {
  * so the modules are sync'd.
  */
 static err_t __send_hello(conn_t *conn) {
-  char buffer[64];
+  char buffer[64] = {0};
   
   int id_len  = strlen(config->sensor_id);
   int msg_len = strlen(config->hello_msg);
@@ -28,6 +28,7 @@ static err_t __send_hello(conn_t *conn) {
 
   memcpy(buffer, config->sensor_id, id_len);
   memcpy(buffer+32, config->hello_msg, msg_len);
+
 
   ssize_t sb = send(conn->sock_fd, buffer, 64, 0);
   if (sb == -1) {
@@ -132,11 +133,15 @@ err_t send_data(conn_t *conn, const char *data, int _len) {
   
   int len = (uint16_t)_len;
   // if there is space in the buffer, fill it.
-  if (sizeof(uint16_t) + len + conn->size_curr < conn->size_total) {
+  if ( (sizeof(uint16_t) + 32 + len + conn->size_curr) < conn->size_total) {
     // write the length of the frame so they can be disguished (is that a word?)
     uint16_t _nlen = htons(len);
     memcpy(conn->buffer + conn->size_curr, &_nlen, sizeof(uint16_t));
     conn->size_curr += sizeof(uint16_t);
+
+    // write the sensor ID
+    memcpy(conn->buffer + conn->size_curr, config->sensor_id, 32);
+    conn->size_curr += 32;
 
     // write the length of the frame to first two bytes
     memcpy(conn->buffer + conn->size_curr, data, len);
@@ -173,6 +178,10 @@ err_t send_data(conn_t *conn, const char *data, int _len) {
   uint16_t _nlen = htons(len);
   memcpy(conn->buffer + conn->size_curr, &_nlen, sizeof(uint16_t));
   conn->size_curr += sizeof(uint16_t);
+  
+  // write the sensor ID
+  memcpy(conn->buffer + conn->size_curr, config->sensor_id, 32);
+  conn->size_curr += 32;
   
   // write new data to 'empty' buffer
   vlog(V_DEBUG, "sent %d bytes, buffer now: %d->%d.\n", _bytes_sent, conn->size_curr, conn->size_curr+len);

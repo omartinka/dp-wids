@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdint.h>
 
 typedef enum {
   OK = 0,
@@ -32,8 +33,10 @@ typedef struct {
   int port;
   char *interface;
   int verbosity;
-  char *sensor_id;
-  char *hello_msg;
+  char sensor_id[32];
+  char hello_msg[32];
+
+  int sensor_id_len;
 } argstore_t;
 
 extern char _errmsg[WIDS_ERR_SIZE];
