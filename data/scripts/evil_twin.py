@@ -4,10 +4,10 @@ from scapy.all import RadioTap, Dot11, Dot11Beacon, Dot11Elt, wrpcap
 beacon_packets = []
 
 aps = [{
-    "ssid": "evil-twin-1",
+    "ssid": "mojessid",
     "mac": "00:00:de:ad:be:ef"
 }, {
-    "ssid": "evil-twin-1",
+    "ssid": "mojessid",
     "mac": "00:00:ca:fe:ba:be"
 }]
 

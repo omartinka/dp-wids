@@ -29,8 +29,17 @@ def parse_args():
         help='print generated alerts to stdout',
         default=False
     )
+    p.add_argument(
+        '-c', '--config',
+        help='path to config file',
+        default=None
+    )
+
     args = p.parse_args()
     
+    if args.config is not None:
+        ctx.load_config_from_file(args.config)
+
     ctx.trace_file = args.trace_file 
     ctx.mode = ctx.MODE_TRACE if ctx.trace_file else ctx.MODE_REALTIME
     ctx.elastic_addr = args.logstash

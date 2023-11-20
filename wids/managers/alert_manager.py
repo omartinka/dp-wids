@@ -32,6 +32,9 @@ class AlertManager:
         """ checks whether to send an alert.
         some alerts have a cooldown field to not DoS ourselves
         """
+        if rule.cooldown is None:
+            return True
+
         last = self.cooldowns.get(rule.id)
         this = int(time.time())
 

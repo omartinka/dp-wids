@@ -1,0 +1,8 @@
+{
+  "home": "ASUS",
+  "home_mac": ["0c:9d:92:54:fe:30"],
+  "home_channels": [13],
+
+  "rule_file": "../data/rules/basic.json",
+  "learning_for": 0
+}

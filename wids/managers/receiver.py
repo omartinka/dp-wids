@@ -33,6 +33,11 @@ class DataReceiver:
                 self.cthread.start()
             except socket.timeout:
                 pass
+            except:
+                pass
+
+    def _run(self):
+        pass
 
     def _stop(self):
         return self.shutdown_flag.is_set()
@@ -49,13 +54,14 @@ class DataReceiver:
 
                 length = int.from_bytes(data, byteorder='big')
                 data = b''
-                while not self._stop() and len(data) < length:
-                    chunk = client_sock.recv(length - len(data))
+                while not self._stop() and len(data) < 32 + length:
+                    chunk = client_sock.recv(32 + length - len(data))
                     if not chunk:
-                        raise ValueError('??')
+                        raise ValueError('conn broken probs.')
                     data += chunk
-                
-                input_stream.process(data)
+
+                sensor_id = data[0:32].decode('utf-8', errors='ignore').strip('\0')
+                input_stream.process(data[32:], sensor=sensor_id)
 
             except Exception as e:
                 print(e)
@@ -69,8 +75,10 @@ class DataReceiver:
 
 data_receiver = DataReceiver()
 
+"""
 def signal_handler(sig, frame):
     if sig == signal.SIGINT:
         data_receiver.stop()
 
 signal.signal(signal.SIGINT, signal_handler)
+"""

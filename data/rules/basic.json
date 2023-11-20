@@ -2,7 +2,7 @@
   "rules": [
     {
       "id": 1,
-      "on": ["beacon", "probe_resp"],
+      "on": ["beacon", "probe-resp"],
       "class": "mitm",
       "cooldown": "1m",
       "type": "alert",
@@ -10,7 +10,7 @@
       "indicators": [
         {
           "id": "unknown ssid-mac combination",
-          "on": ["beacon", "probe_resp"],
+          "on": ["beacon", "probe-resp"],
           "attrs": {
               "ssid": "$home",
               "mac": "!$home"
@@ -33,6 +33,99 @@
               "op": ">8",
               "isnot": ["$home"]
             }
+          }
+        }
+      ]
+    }, {
+      "id": 3,
+      "on": ["assoc-req"],
+      "class": "info",
+      "type": "info",
+      "msg": "new device associating",
+      "indicators": [
+        {
+          "id": "unknown src addr associating",
+          "on": ["assoc-req"],
+          "attrs": {
+            "auth-state": null
+          }
+        }
+      ]
+    }, {
+      "id": 4,
+      "on": ["deauth"],
+      "class": "dos",
+      "type": "alert",
+      "cooldown": "10s",
+      "msg": "deauthentication attack",
+      "indicators": [
+        {
+          "id": "non-ap source, broadcast dst",
+          "on": ["deauth"],
+          "attrs": {
+            "addr2": "!$home",
+            "addr1": "ff:ff:ff:ff:ff:ff"
+          }
+        }, {
+          "id": "broadcast deauthentication",
+          "on": ["deauth"],
+          "attrs": {
+            "addr1": "ff:ff:ff:ff:ff:ff"
+          }
+        }
+      ]
+    }, {
+      "id": 5,
+      "on": ["deassoc"],
+      "class": "dos",
+      "type": "alert",
+      "cooldown": "10s",
+      "msg": "deassocation attack",
+      "indicators": [
+        {
+          "id": "non-ap src, broadcast dst",
+          "on": ["deassoc"],
+          "attrs": {
+            "addr1": "!$home",
+            "addr2": "ff:ff:ff:ff:ff:ff"
+          }
+        }
+      ]
+    }, {
+      "id": 6,
+      "on": ["data"],
+      "class": "data-leak",
+      "type": "alert",
+      "msg": "possible kr00k attack",
+      "indicators": [
+        {
+          "id": "data after deauth",
+          "on": "data",
+          "attrs": {
+            "auth-state": "deauth"
+          }
+        }, {
+          "id": "data after dissasoc",
+          "on": "data",
+          "attrs": {
+            "auth-state": "dissassoc"
+          }
+        }
+      ]
+    }, {
+      "id": 7,
+      "on": ["probe-resp", "beacon"],
+      "class": "mitm",
+      "type": "alert",
+      "msg": "multi channel man in the middle attack",
+      "cooldown": "30s",
+      "indicators": [
+        {
+          "id": "ssid-unexpected-channel",
+          "on": ["probe-resp", "beacon"],
+          "attrs": {
+            "ssid": "$home",
+            "channel": "$!home"
           }
         }
       ]

@@ -8,9 +8,10 @@ class FileStream:
     
     def process(self, file):
         pr = PcapReader(file)
+        print('pcap loaded.')
 
-        for packet in pr:    
-            stat_manager.get().on_frame(packet)
+        for i, packet in enumerate(pr):
+            stat_manager.get().on_frame(packet, 'tracefile')
             
 
 file_stream = FileStream()
