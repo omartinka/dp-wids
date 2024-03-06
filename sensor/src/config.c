@@ -85,6 +85,7 @@ err_t parse_args(int argc, char *argv[]) {
   
   // default values
   config->verbosity = 3;
+  uint32_t _len = 0;
 
   while (opt != -1) {
     opt = getopt(argc, argv, "huta:p:v:i:dn:m:");
@@ -113,10 +114,22 @@ err_t parse_args(int argc, char *argv[]) {
         config->daemon = 1;
         break;
       case 'n':
-        config->sensor_id = optarg;
+        _len=strlen(optarg);
+        if (_len > 32) {
+          vlog(V_INFO, "provided sensor ID has length %d, trunctating to 32.\n", _len);
+          _len = 32;
+        }
+        vlog(V_INFO, "sensor id of length %d\n", _len);
+        config->sensor_id_len = _len;
+        memcpy(config->sensor_id, optarg, _len);
         break;
       case 'm':
-        config->hello_msg = optarg;
+        _len=strlen(optarg);
+        if (_len > 32) {
+          vlog(V_INFO, "provided sync message has length %d, trunctating to 32.\n", _len);
+          _len = 32;
+        }
+        memcpy(config->hello_msg, optarg, _len);
         break;
       default:
         break;
@@ -155,6 +168,17 @@ err_t parse_args(int argc, char *argv[]) {
 
   if (config->sensor_id == NULL) {
     seterr("sensor ID not set!");
+    return ERR;
+  }
+
+  int _sensor_id_len = strlen(config->sensor_id);
+  if (_sensor_id_len > 32) {
+    _sensor_id_len = 32;
+  }
+  config->sensor_id_len = _sensor_id_len;
+
+  if (config->hello_msg == NULL) {
+    seterr("hello msg not set!");
     return ERR;
   }
 

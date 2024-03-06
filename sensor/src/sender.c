@@ -1,24 +1,42 @@
 #include "../include/config.h"
 #include "../include/sender.h"
 
+static void __reset_conn(conn_t *conn) {
+  conn->ok = 0;
+  conn->size_curr = 0;
+  conn->size_total = 0;
+  memset(conn->buffer, 0, sizeof(conn->buffer));
+}
+
 /*
  * Sends a `hello` message and waits for response from the logger module
  * so the modules are sync'd.
  */
 static err_t __send_hello(conn_t *conn) {
-  char buffer[64];
+  char buffer[64] = {0};
   
   int id_len  = strlen(config->sensor_id);
   int msg_len = strlen(config->hello_msg);
 
+  if (id_len > 32) {
+    id_len = 32;
+  }
+
+  if (msg_len > 32) {
+    msg_len = 32;
+  }
+
   memcpy(buffer, config->sensor_id, id_len);
   memcpy(buffer+32, config->hello_msg, msg_len);
+
 
   ssize_t sb = send(conn->sock_fd, buffer, 64, 0);
   if (sb == -1) {
     seterr("failed to send init message!");
     return ERR_GENERIC;
   }
+
+  vlog(V_INFO, "logger module sync initialized\n");
 
   // wait for response so we know its ok
   char recv_buf[64];
@@ -30,7 +48,7 @@ static err_t __send_hello(conn_t *conn) {
   }
   
   // memcmp ? not necessary i think
-
+  vlog(V_INFO, "received response from logger module, sync done\n");
   return OK;
 }
 
@@ -87,7 +105,6 @@ err_t _setup_tcp(conn_t *conn) {
     seterr("could not connect to server `%s`.", config->addr);
     return ERR_GENERIC;
   }
-
   err_t err = __send_hello(conn);
   if (err != OK) {
     errmsg(ERR);
@@ -108,14 +125,23 @@ err_t send_data(conn_t *conn, const char *data, int _len) {
     seterr("send_data received negative length. error probably in sniffing.");
     return ERR_GENERIC;
   }
+
+  if (!conn->ok) {
+    vlog(V_INFO, "connection not initialized, attempting to resync\n");
+    setup_conn(conn);
+  }
   
   int len = (uint16_t)_len;
   // if there is space in the buffer, fill it.
-  if (sizeof(uint16_t) + len + conn->size_curr < conn->size_total) {
+  if ( (sizeof(uint16_t) + 32 + len + conn->size_curr) < conn->size_total) {
     // write the length of the frame so they can be disguished (is that a word?)
     uint16_t _nlen = htons(len);
     memcpy(conn->buffer + conn->size_curr, &_nlen, sizeof(uint16_t));
     conn->size_curr += sizeof(uint16_t);
+
+    // write the sensor ID
+    memcpy(conn->buffer + conn->size_curr, config->sensor_id, 32);
+    conn->size_curr += 32;
 
     // write the length of the frame to first two bytes
     memcpy(conn->buffer + conn->size_curr, data, len);
@@ -130,6 +156,7 @@ err_t send_data(conn_t *conn, const char *data, int _len) {
     err = _send_udp(conn);
     if (err != OK) {
       seterr("failed to send udp data in _send_udp, sender.c!");
+      __reset_conn(conn);
       return ERR_GENERIC;
     }
   }
@@ -138,6 +165,7 @@ err_t send_data(conn_t *conn, const char *data, int _len) {
     err = _send_tcp(conn);
     if (err != OK) {
       seterr("failed to send tcp data in _send_tcp, sender.c!");
+      __reset_conn(conn);
       return ERR_GENERIC;
     }
   }
@@ -150,6 +178,10 @@ err_t send_data(conn_t *conn, const char *data, int _len) {
   uint16_t _nlen = htons(len);
   memcpy(conn->buffer + conn->size_curr, &_nlen, sizeof(uint16_t));
   conn->size_curr += sizeof(uint16_t);
+  
+  // write the sensor ID
+  memcpy(conn->buffer + conn->size_curr, config->sensor_id, 32);
+  conn->size_curr += 32;
   
   // write new data to 'empty' buffer
   vlog(V_DEBUG, "sent %d bytes, buffer now: %d->%d.\n", _bytes_sent, conn->size_curr, conn->size_curr+len);
@@ -186,7 +218,7 @@ err_t _send_tcp(conn_t *conn) {
   }
   ssize_t total_sent = 0;
   while (total_sent < conn->size_curr) {
-    ssize_t sent_bytes = send(conn->sock_fd, conn->buffer, conn->size_curr, 0);
+    ssize_t sent_bytes = send(conn->sock_fd, conn->buffer, conn->size_curr, MSG_NOSIGNAL);
     if (sent_bytes == -1) {
       seterr("failed to send tcp data `to `%s:%d`", config->addr, config->port);
       return ERR_GENERIC;
