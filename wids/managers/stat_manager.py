@@ -1,8 +1,10 @@
 import utils.context as ctx
-from managers.rule_manager import rule_parser
 from scapy.all import *
 import time
 import logging as log
+
+from utils.config import config
+from utils.queue import Queue
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -36,115 +38,145 @@ class AuthTable:
         return entry['state']
 
 
-class StatTable:
-    def __init__(self):
-        self.stat_table = {
-            "ssid": {}
-        }
-
-    def get(self):
-        return self.stat_table
-
-    def add_ssid_entry(self, channel, ssid, expected_interval, timestamp, remove):
-        if self.stat_table["ssid"].get(ssid) is None:
-            log.debug(f'new ssid entry {ssid} on channel {channel}!')
-            self.stat_table["ssid"][ssid] = {
-                'expected_interval': expected_interval,
-                'last_beacon': timestamp,
-                'beacon_count': 1,
-                'channels': {channel: 1}
-            }
-            return
-        
-        mydict = self.stat_table["ssid"][ssid]
-        mydict['last_beacon'] = ssid
-
-        if not remove:
-            mydict['beacon_count'] += 1
-
-            if channel in mydict['channels']:
-                mydict['channels'][channel] += 1
-            else:
-                log.debug(f'new channel for ssid {ssid}! {channel}')
-                mydict['channels'][channel] = 1
-
-        else:
-            mydict['beacon_count'] -= 1
-
-            if channel in mydict['channels']:
-                mydict['channels'][channel] -= 1
-
-        if mydict['beacon_count'] == 0:
-            del self.stat_table["ssid"][ssid]
-
 class StatManager():
     def __init__(self):
-        self.stat_table = StatTable()
+        self.learning = False
+        # self.queue = []
+        self.queue = Queue(config.keep_for, self._remove_frame)
         self.auth_table = AuthTable()
-        self.queue = []
-        self.rssi_table = {}
 
-        self.learning = False # TODO will be true somewhen
+        self.ssids = {}
+        self.aps = {}
+        self.occurences = {}
+        self.sta_state = {}
+        self.total = 0
         self.start = time.time()
 
-        self.rssi = {
-            "avg": 0,
-            "threshold": 0,
-        }
+    def state_for(self, client_addr, ap_addr):
+        return None
 
     def __on_management(self, frame, remove):
         freq = frame.getlayer(RadioTap).ChannelFrequency
         if freq is None:
             freq = 2447
         channel = ctx.get_channel_for_freq(freq)
+        if channel not in self.ssids:
+            self.ssids[channel] = {}
+        if channel not in self.aps:
+            self.aps[channel] = {}
 
         # beacon
-        if frame.subtype == 8:
+        if frame.subtype == ctx.SUBTYPE_BEACON:
             ssid = frame.info.decode('utf-8', errors='ignore')
             interval = frame.getlayer(Dot11Beacon).beacon_interval
-            timestamp = frame.getlayer(Dot11Beacon).timestamp
-            self.stat_table.add_ssid_entry(channel, ssid, interval, timestamp, remove)
+            timestamp = frame.time
+            bssid = frame.addr3
 
-        # assoc
+            if not remove:
+                if ssid not in self.ssids[channel]:
+                    self.ssids[channel][ssid] = 1
+                
+                if bssid not in self.aps[channel]:
+                    self.aps[channel][bssid] = {
+                        'ssid': ssid,
+                        'expected_interval': interval,
+                        'expected_rssi': frame.dBm_AntSignal,
+                        'last_beacon': timestamp,
+                        'last_num': frame.SC,
+                        'count': 1
+                    }
+
+            if remove:
+                if ssid in self.ssids[channel]:
+                    self.ssids[channel][ssid] -= 1
+                    if self.ssids[channel][ssid] <= 0:
+                        del self.ssids[channel][ssid]
+                
+                if bssid in self.aps[channel]:
+                    me = self.aps[channel][bssid]
+                    me['count'] -= 1
+                    me['last_beacon'] = timestamp
+                    if me['count'] <= 0:
+                        del self.aps[channel][bssid] # me may work ?
+
+        # assoc request
         if frame.subtype == 0:
             self.auth_table.update_entry(frame.addr2, 'assoc-req')
+            self.sta_state[frame.addr2] = 'assoc-req'
         
+        # assoc response
         if frame.subtype == 1:
             self.auth_table.update_entry(frame.addr3, 'associated')
+            self.sta_state[frame.addr1] = 'associated'
 
+        # open authentication
         if frame.subtype == 0x0b:
             self.auth_table.update_entry(frame.addr2, 'open-auth')
+            self.sta_state[frame.addr3] = 'open-auth'
 
+        # EAPOL
         if frame.subtype == 0x08:
             # TODO specific eapol messages
             self.auth_table.update_entry(frame.addr2, 'eapol')
+            self.sta_state[frame.addr2] = 'eapol'
+
+        # Dissasociation
+        if frame.subtype == ctx.STYPE_DISASS:
+            self.sta_state[frame.addr1] = 'disassociated'
+
+        # Deauthentication
+        if frame.subtype == ctx.STYPE_DEAUTH:
+            self.sta_state[frame.addr1] = 'deauthenticated'
 
     def __on_data(self, frame, remove):
-        if frame.subtype == 0:
+        if frame.subtype == 8:
+            # EAPOL
             pass
 
-    def __analyze_frame(self, frame, remove=False):
-        if frame.type == 0:
+    def __update_occurences(self, frame, remove):
+        freq = frame.getlayer(RadioTap).ChannelFrequency
+        if freq is None:
+            freq = 2447
+        channel = ctx.get_channel_for_freq(freq)
+        if channel not in self.occurences:
+            self.occurences[channel] = {}
+
+        val = -1 if remove else 1
+
+        if self.occurences[channel].get(frame.type) is None:
+            self.occurences[channel][frame.type] = {}
+        if self.occurences[channel][frame.type].get(frame.subtype) is None:
+            self.occurences[channel][frame.type][frame.subtype] = 0
+
+        self.occurences[channel][frame.type][frame.subtype] += val
+
+    def _analyze_frame(self, frame, remove=False):
+        if frame.type == ctx.TYPE_MGMT:
             self.__on_management(frame, remove)
-        elif frame.type == 2:
+        elif frame.type == ctx.TYPE_DATA:
             self.__on_data(frame, remove)
 
-    def __add_frame(self, frame):
+        self.__update_occurences(frame, remove)
+
+    def _add_frame(self, frame):
         """ this shit is surely inefficient, fix it """
         self.queue.append(frame)
-        if len(self.queue) > ctx.QUEUE_LEN:
-            to_remove = self.queue[:-ctx.QUEUE_LEN]
-            self.queue = self.queue[-ctx.QUEUE_LEN:]
-            self.__remove_frame(to_remove)
-
-        self.__analyze_frame(frame, remove=False)
         
-    def __remove_frame(self, to_remove):
+        self.total += 1
+
+        if self.total % 10000 == 0:
+            end = time.time()
+            print(f'[info] processed 10000 frames in {end - self.start}, items in queue: {len(self.queue)}')
+            self.start = end
+
+        self._analyze_frame(frame, remove=False)
+        
+    def _remove_frame(self, to_remove):
         if not isinstance(to_remove, list):
             to_remove = [to_remove]
         
         for frame in to_remove:
-            self.__analyze_frame(frame, remove=True)
+            self._analyze_frame(frame, remove=True)
 
     def __calc_thresholds(self):
         """ goes over the values learned in learning phase and calculates averages
@@ -168,24 +200,11 @@ class StatManager():
         else:
             self.rssi_table[addr].append(rssi)
 
-    def on_frame(self, frame, sensor):
-
+    def on_frame(self, frame, sensor, frame_number=None):
         if self.learning:
             self.__learn(frame)
-
-        if not self.learning:
-            for rule in rule_parser.rules:
-                rule.apply(frame, sensor=sensor)
         
-        # then add
-        self.__add_frame(frame)
-
-    def get_ssids_for_channel(self, channel):
-        # ignore the channel for now this is a prototype
-        return [key for key in self.stat_table.get()['ssid']]
-
-    def get_state_for_addr(self, addr):
-        return self.auth_table.get_state_for_addr(addr)
+        self._add_frame(frame)
 
 stat_manager = StatManager()
 

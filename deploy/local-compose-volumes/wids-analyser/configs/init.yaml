@@ -1,0 +1,115 @@
+# Configuration specific to the behavior of the application itself
+app:
+  
+  # Prints debug information to stdout
+  debug: true
+
+  # Mode of operation
+  # 1 - load from trace analysis
+  # 2 - real time
+  mode: 1
+
+  # Name of file to analyze if trace analysis mode specified
+  # Overridden by CLI arguments
+  # trace_file: /data/sample/sample.pcap
+  # trace_file: /home/slkd/skola/dp/dp-wids/deploy/local-compose-volumes/wids-analyser/pcaps/awid3_krack_attack_only.pcap
+  trace_file: /home/slkd/skola/dp/pcaps/awid3_kr00k_attack_only.pcap
+
+  # List of remote systems to send generated alerts to
+  remote: 
+    - addr: 127.0.0.1
+      port: 8080
+  
+
+  # Whether to print generated alerts to stdout
+  verbose: true
+
+  # Name of local output file
+  # output_file: /data/out/alerts.log
+  output_file: alerts.log
+
+  # Listen address for aggregator connection
+  wids_addr: 0.0.0.0
+  
+  # Listen port for aggregator connection
+  wids_port: 7777
+
+## Aggregator config
+aggregator:
+  
+  # Do not check if aggregator is whisted
+  allow_any: false
+  
+  # Whitelist of aggregator ips
+  allowed:
+    - "192.168.0.111"
+  
+  # Socket timeout in seconds - delay how long we wait for connections
+  # Makes killing the process faster if low
+  sock_timeout: 0.2 
+
+# WIDS config, related to how the rules and detection modules should behave
+wids:
+
+  # Settings about the "home" network, i.e, network to protect
+  # Or multiple home networks
+  home:
+    - ssid: "ASUS_5G"
+      hidden: false
+      mac:
+        - "0c:9d:92:54:fe:34"
+      channels:
+        - 36
+    - ssid: "ASUS"
+      hidden: false
+      mac:
+        - "0c:9d:92:54:fe:30"
+      channels:
+        - 13
+
+
+  # number of frames to keep in memory for statistic based rule matching
+  keep_for: 10000
+  
+  # Path to a file containing rules
+  # TODO: maybe specify rule dir? or allow rule files as a list...
+  # rule_file: "/data/rules/simple.json"
+  rule_file:  "/home/slkd/skola/dp/dp-wids/deploy/local-compose-volumes/wids-analyser/rules/simple.json"
+  rule_dir: "/home/slkd/skola/dp/dp-wids/deploy/local-compose-volumes/wids-analyser/rules"
+  ruleignore: 
+    - to_ignore.yaml
+  
+
+  # List of detection modules to enable
+  # Can be listed using `-l`
+  modules:
+    - "flood"
+    - "rogueap"
+    - "kr00k"
+
+  # The duration of 'learning' period, where the WIDS learns base values
+  # used in intrusion detection. Overriden by "profile" option
+  learning_for: 0
+
+  # Path to a 'profile' file
+  # profile: ""
+  
+  # Module specific config
+  module_krook:
+    # Try to decrypt potentially kr00ked packets
+    # Reduces false alerts, alerts only on successfully kr00ked packets at the cost of computing power
+    try_decrypt_kr00k: False
+    
+    # TODO wtf is this
+    kr00k_alert_unknown: False
+
+  module_flood:
+
+    # Number of different advertised SSIDs to consider a flood
+    max_ssid_count: 8
+
+    # Number of different advertised BSSIDs per SSID to consider a flood
+    max_bssid_count: 8
+
+    # 
+

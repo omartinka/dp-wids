@@ -1,4 +1,5 @@
 import utils.context as ctx
+from scapy.all import RadioTap
 
 def get_subtype_from_string(val):
     if val == 'beacon':
@@ -7,8 +8,12 @@ def get_subtype_from_string(val):
         return 0, 5
     elif val == 'assoc-req':
         return 0, 0
-    elif val == 'assoc-res':
+    elif val == 'assoc-resp':
         return 0, 1
+    elif val == 'reassoc-req':
+        return 0, 2
+    elif val == 'reassoc-resp':
+        return 0, 3
     elif val == 'auth':
         return 0, 0x0b
     elif val == 'deauth':
@@ -47,6 +52,13 @@ def get_config_ssids(key_):
             return [ctx.home], is_neg
         else:
             return [key], is_neg
+
+def get_channel(frame):
+    freq = frame.getlayer(RadioTap).ChannelFrequency
+    if freq is None:
+        return 2447 # TODO TOTO JE KKTINA
+    else:
+        return get_channel_for_freq(freq)
 
 def get_channel_for_freq(frequency):
     channel = 0

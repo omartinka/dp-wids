@@ -1,0 +1,86 @@
+{
+  "rules": [
+   {
+      "id": 1,
+      "on": ["assoc-req", "assoc-resp", "reassoc-req", "reassoc-resp", "auth", "eapol"],
+      "class": "impersonation",
+      "type": "alert",
+      "msg": "client communicating with fake/spoofed network",
+      "indicators": [
+        {
+          "id": "client attempting to associate to fake network",
+          "on": ["assoc-req", "reassoc-req"],
+          "cooldown": "1s",
+          "attrs": {
+            "addr1": "$home",
+            "channel": "!$home"
+          }
+        },
+        {
+          "id": "client associated to fake network",
+          "on": ["assoc-resp", "reassoc-resp"],
+          "cooldown": "1s",
+          "attrs": {
+            "addr2": "$home",
+            "channel": "!$home"
+          }
+        },
+        {
+          "id": "authentication to fake network",
+          "on": ["auth"],
+          "cooldown": "1s",
+          "attrs": {
+            "addr": "$home",
+            "channel": "!$home"
+          }
+        }
+      ]
+    }, {
+      "id": 2,
+      "on": ["deauth"],
+      "class": "dos",
+      "type": "alert",
+      "cooldown": "10s",
+      "msg": "deauthentication attack",
+      "indicators": [
+        {
+          "id": "fluctuating rssi",
+          "on": ["deauth"],
+          "attrs": {
+            "radiotap": {
+              "rssi": "$!home"
+            },
+            "dot11": {
+              "addr2": "$home"
+            }
+          }
+        }, {
+          "id": "non-ap source, broadcast dst",
+          "on": ["deauth"],
+          "attrs": {
+            "addr2": "!$home",
+            "addr1": "ff:ff:ff:ff:ff:ff"
+          }
+        }, {
+          "id": "broadcast deauthentication",
+          "on": ["deauth"],
+          "attrs": {
+            "dot11": {
+              "addr1": "ff:ff:ff:ff:ff:ff"
+            }
+          }
+        }, {
+          "id": "reason code 7 - aircrack",
+          "on": ["deauth"],
+          "attrs": {
+            "dot11": {
+              "deauth": {
+                "reason_code": 7
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

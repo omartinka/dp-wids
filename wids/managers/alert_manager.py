@@ -1,19 +1,70 @@
-import utils.context as ctx
-from managers.elastic import elastic
+# ** USED **
+
+from utils.config import config
+import managers.log_manager as lm
 
 import json
 import time
+import datetime
+import socket
+import threading
 
 alert_manager = None
+
+class AlertDstTCP:
+    def __init__(self, name):
+        """ For sending data through TCP """
+        self.name = name
+        self.sock_fd = None
+        self.on = False
+        self.addr = ()
+        
+    def init(self, addr, port):
+        port = int(port)
+        self.addr = (addr, port)
+        self.on = True
+ 
+    def connect(self):
+        self.sock_fd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock_fd.connect(self.addr)
+    
+    def log(self, level, data):
+        if not self.on:
+            lm.error(f'tcp alert destination {name} not connected!')
+            return
+        self.connect()
+        self.sock_fd.sendall(json.dumps(data).encode()) 
+        self.sock_fd.close()
 
 class AlertManager:
     def __init__(self):
         self.write_to = None
         self.cooldowns = {}
+        self.tcp_nodes = []
+        
+        self.alert_threads = []
 
     def init(self):
-        if ctx.output_file:
-            self.write_to = open(ctx.output_file, 'a')
+        self.tcp_nodes = []
+        self.cooldowns = {}
+        if self.write_to is not None:
+            self.write_to.close()
+        self.write_to = None
+
+        if len(config.remote) > 0:
+            # Go through all remote alert destinations and create a client for each
+            for node in config.remote:
+                try:
+                    addr, port = node
+                    client = AlertDstTCP(f'TCP:{addr}')
+                    client.init(addr, port)
+                    self.tcp_nodes.append(client)
+                except:
+                    lm.error(f'could not connect to alert destination: {addr}:{port}.')
+                    continue
+
+        if config.output_file:
+            self.write_to = open(config.output_file, 'a')
     
     def __parse_log_level(self, level: str) -> str:
         """ 
@@ -48,21 +99,56 @@ class AlertManager:
         self.cooldowns[rule.id] = this
         return True
 
-    def alert(self, rule, data, level='alert'):
-        if not self.__do_send(rule):
-            return
-
-        if ctx.elastic_addr:
-            elastic.log(level, data)
+    def _alert(self, data, level='alert'):
         
-        if ctx.output_file and self.write_to:
+        # resolve connector attributes
+        if '_to_resolve' in data:
+            for item in data['_to_resolve']:
+                key = item['key']
+                val = item['val']
+                resolver = item['resolver']
+                try:
+                    connector = connectors[resolver['connector']]
+                    data[key] = getattr(connector, resolver['func'])(val)
+                except:
+                    lm.warn(f'[WARN] Failed to resolve connector: (cls) `{resolver["connector"]}` (fun) `{resolver["func"]}`')
+        
+        # Clean up
+        del data['_to_resolve']
+
+        # fix up timestamp
+        try:
+            t = datetime.datetime.fromtimestamp(float(data['timestamp']))
+            data['timestamp'] = str(t)
+        except:
+            ts = data['timestamp']
+            lm.warn(f'[WARN] could not parse timestamp: [{ts}]')
+
+        for node in self.tcp_nodes:
+            try:
+                node.log(level, data)
+            except:
+                lm.warn(f'connection to {node.name} broken!')
+        if config.output_file and self.write_to:
             self.write_to.write(json.dumps(data) + '\n')
         
-        if ctx.verbose_logging:
+        if config.verbose:
             print(json.dumps(data))
+
+    def alert(self, data, level='alert'):
+        """ Generates an alert. 
+        This is done in a separate thread to not block the WIDS in case of
+        an alert with slow resolver elements.
+        """
+        t = threading.Thread(target=self._alert, args=(data, level))
+        self.alert_threads.append(t)
+        t.start()
 
     def close(self):
         self.write_to.close()
+        for _t in self.alert_threads:
+            if _t.is_alive():
+                _t.join()
 
     @classmethod
     def get(cls):

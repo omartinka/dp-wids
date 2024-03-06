@@ -1,11 +1,30 @@
 from utils.converters import *
 from utils.getters import *
+from utils.alerts import *
+from utils.attributes import *
+from utils.config import config
+
 import json
 
-MODE_TRACE = 0
-MODE_REALTIME = 1
+TYPE_MGMT = 0
+TYPE_CTRL = 1
+TYPE_DATA = 2 
+
+SUBTYPE_BEACON = STYPE_BEACON = 8
+SUBTYPE_DEAUTH = STYPE_DEAUTH = 0xc
+SUBTYPE_DISASS = STYPE_DISASS = 0xa 
+
+MODE_NONE     = 0
+MODE_TRACE    = 1
+MODE_REALTIME = 2
+
 DUP_CHECK = 100
 QUEUE_LEN = 10000
+
+SOCK_TIMEOUT = sock_timeout = 0.2
+
+try_decrypt_kr00k = False
+kr00k_alert_unknown = False
 
 mode = MODE_REALTIME
 
@@ -14,7 +33,7 @@ home_mac = ["00:00:ca:fe:ba:be"]
 # non-overlapping !
 home_channels = []
 
-rule_file = '../data/rules/basic.json'
+rule_file = None
 trace_file = None
 
 elastic_addr = None

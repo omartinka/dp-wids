@@ -1,5 +1,5 @@
 from scapy.all import PcapReader
-from managers import stat_manager
+from analyze import processor
 
 class FileStream:
 
@@ -8,10 +8,10 @@ class FileStream:
     
     def process(self, file):
         pr = PcapReader(file)
-        print('pcap loaded.')
+        source = file.split('/')[-1]
 
         for i, packet in enumerate(pr):
-            stat_manager.get().on_frame(packet, 'tracefile')
-            
+            processor.get().process(packet, source, frame_number=i+1)
+
 
 file_stream = FileStream()
