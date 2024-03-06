@@ -3,6 +3,6 @@
   "home_mac": ["0c:9d:92:54:fe:30"],
   "home_channels": [13],
 
-  "rule_file": "../data/rules/basic.json",
+  "rule_file": "../data/rules/simple.json",
   "learning_for": 0
 }
