@@ -3,6 +3,8 @@
 from utils.config import config
 import managers.log_manager as lm
 
+from connectors import connectors
+
 import json
 import time
 import datetime
@@ -110,7 +112,7 @@ class AlertManager:
                 try:
                     connector = connectors[resolver['connector']]
                     data[key] = getattr(connector, resolver['func'])(val)
-                except:
+                except Exception as e:
                     lm.warn(f'[WARN] Failed to resolve connector: (cls) `{resolver["connector"]}` (fun) `{resolver["func"]}`')
         
         # Clean up

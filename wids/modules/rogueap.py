@@ -4,7 +4,7 @@ import utils.context as context
 from utils.const import * 
 from utils.config import config
 
-from managers.stat_manager import StatManager
+from managers.context_manager import ContextManager
 from scapy.all import Packet
 
 class RogueApModule(modules.base.BaseModule):
@@ -18,7 +18,7 @@ class RogueApModule(modules.base.BaseModule):
         self.class_ = 'impersonation'
         self.severity = 'attack'
 
-    def _mitm_advertising(self, frame: Packet, sm: StatManager, ctx: dict) -> dict|None:
+    def _mitm_advertising(self, frame: Packet, cm: ContextManager, ctx: dict) -> dict|None:
         if not ((frame.type, frame.subtype) == (TYPE_MGMT, SUBTYPE_BEACON)):
             return None
         
@@ -61,8 +61,10 @@ class RogueApModule(modules.base.BaseModule):
                 raise_alert = True
 
         # RSSI is fluctuating - possible same channel attack
-        ap_info = sm.aps.get(str(frame.addr2))
-         
+        # ap_info = cm.aps.get(str(frame.addr2))
+        # TODO
+        ap_info = None
+
         if ap_info:
             fluctuation = abs(ap_info['expected_rssi'] - frame.dBm_AntSignal)
             if fluctuation > self.rssi_threshold:
@@ -78,9 +80,9 @@ class RogueApModule(modules.base.BaseModule):
 
         return alert if raise_alert else None
 
-    def _on_frame(self, frame: Packet, sm: StatManager, ctx: dict) -> list:
+    def _on_frame(self, frame: Packet, cm: ContextManager, ctx: dict) -> list:
         alerts = []
-        alert = self._mitm_advertising(frame, sm, ctx)
+        alert = self._mitm_advertising(frame, cm, ctx)
         if alert is not None:
             alerts.append(alert)
 

@@ -4,6 +4,8 @@ app:
   # Prints debug information to stdout
   debug: true
 
+  debug_sum_interval: 10000
+
   # Mode of operation
   # 1 - load from trace analysis
   # 2 - real time
@@ -70,7 +72,11 @@ wids:
 
   # number of frames to keep in memory for statistic based rule matching
   keep_for: 10000
-  
+
+  # number of seconds of idle time after which a device is considered "out of reach"
+  # and broadcast messages wont change its state. can be floating point value
+  left_after: 120.0
+
   # Path to a file containing rules
   # TODO: maybe specify rule dir? or allow rule files as a list...
   # rule_file: "/data/rules/simple.json"

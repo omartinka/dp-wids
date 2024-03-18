@@ -28,6 +28,12 @@ def parse_cooldown(cd):
     if cd.endswith('h'):
         return int(cd[:-1], 10) * 60 * 60
 
+def parse_op_time(data):
+    # [>,<,<=,>=,==,!=]
+    # <int>
+    # [s,ms,ns,m,h,d]
+    return _,_,_
+
 def flatten_json(y):
     out = {}
 

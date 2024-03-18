@@ -1,6 +1,7 @@
 import modules.flood
 import modules.rogueap
 import modules.kr00k
+import modules.krack
 
 from scapy.all import Packet
 import utils.context as ctx
@@ -16,7 +17,8 @@ def get_id():
 module_map = {
     'flood': flood.FloodModule,
     'rogueap': rogueap.RogueApModule,
-    'kr00k': kr00k.KrookModule
+    'kr00k': kr00k.KrookModule,
+    'krack': krack.KrackModule    
 }
 
 def init_modules(to_load):
@@ -33,7 +35,8 @@ def init_modules(to_load):
 modules = [
     flood.FloodModule(get_id()),
     rogueap.RogueApModule(get_id()),
-    kr00k.KrookModule(get_id())
+    kr00k.KrookModule(get_id()),
+    krack.KrackModule(get_id())
 ]
 
 available = [mm for mm in module_map]

@@ -35,6 +35,12 @@ class _HomeDict(dict):
             macs.update(self[k].mac)
         return macs
 
+    def channels(self):
+        chans = set()
+        for k in self:
+            chans.update(self[k].channels)
+        return chans
+
 class Config:
     """ """
 
@@ -60,9 +66,10 @@ class Config:
     profile: str = ""
     modules: List[str] = []
     keep_for: int = 10000
-
+    left_after: float = 120.0
     # TODO maybe levels ??
     debug: bool = False
+    debug_interval: int = 10000000
 
     def __init__(self):
         pass
@@ -70,6 +77,7 @@ class Config:
     def summary(self):
         print('** Loaded config: ', self.config_path, '**')
         print('Debug mode:', self.debug)
+        print('    - summary interval:', self.debug_interval)
         print('Mode:', self.mode)
         print('Trace file:', self.trace_file)
         print('Remotes:')
@@ -84,6 +92,7 @@ class Config:
         print('Rule dir:', self.rule_dir)
         print('Rule files to ignore:', ', '.join(self.ruleignore))
         print('Frames to keep in memory:', self.keep_for)
+        print('Device idle time:', self.left_after)
         print('Learning for:', self.learning_for)
         print('Profile:', self.profile)
         print('Modules enabled:', ', '.join(self.modules))
@@ -118,6 +127,7 @@ class Config:
         self.trace_file = cfg['trace_file']
         self.load_remote(cfg)
         self.debug = cfg['debug']
+        self.debug_interval = cfg['debug_sum_interval']
         self.verbose = cfg['verbose']
         self.output_file = cfg['output_file']
 
@@ -138,6 +148,7 @@ class Config:
             self.modules.append(_m)
         
         self.keep_for = cfg['keep_for']
+        self.left_after = cfg['left_after']
 
         print(self.rule_file)
 

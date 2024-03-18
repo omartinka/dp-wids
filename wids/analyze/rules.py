@@ -3,7 +3,9 @@ import connectors.macapi
 
 from managers.alert_manager import AlertManager
 from managers import stat_manager, log_manager
+
 from scapy.all import *
+from typing import List
 
 import binascii
 import logging as log
@@ -34,6 +36,7 @@ class Attribute:
         self.val = data['value']
         self.action = data['on_missing'] if 'on_missing' in data else 'ignore'
         self.fluctuation = data['fluctuation'] if 'fluctuation' in data else 0
+
         self._check()
 
     def _check(self):
@@ -43,6 +46,10 @@ class Attribute:
             raise Exception('unknown action.')
 
 class Indicator:
+    id: int = 0
+    on: List[Packet] = []
+    cooldown: int = 0
+    attrs: List[Attribute] = []
 
     def __init__(self, _idc):
         self.id = _idc['id']
@@ -53,13 +60,16 @@ class Indicator:
             self.on.append(globals()[_l])
 
         self.cooldown = _idc['cooldown']
-        self._parse_attrs(_idc['attrs'])
+        self._parse_attrs(_idc.get('attrs'))
 
         if 'state' in _idc:
             self.state = _idc['state']
 
     def _parse_attrs(self, attrs):
         self.attrs = []
+        if attrs is None:
+            return
+
         for attr in attrs:
             try:
                 a = Attribute(attr)
@@ -91,35 +101,13 @@ class Indicator:
 
             val = getattr(packet, atr.attr)
             
-            if atr.op == '==' and atr.val != val:
-                return []
-            elif atr.op == '!=' and atr.val == val:
-                return []
-            elif atr.op == '>' and atr.val <= val:
-                return []
-            elif atr.op == '<' and atr.val >= val:
-                return []
-            elif atr.op == '>=' and atr.val < val:
-                return []
-            elif atr.op == '<=' and atr.val > val:
-                return []
-            elif atr.op == 'in' and val not in atr.val:
-                return []
-            elif atr.op == '!in' and val in atr.val:
-                return []
+            str_ = f'{atr.val} {atr.op} {val}'
 
-            iocs.append((atr.attr, val))
-        
-        # check authentication state
-        # if self.state is not None:
-        #     sm = stat_manager.get_instance()
-        #     if sm.state_for(packet.addr2, packet.addr3) in self.state:
-        #         iocs.append(('auth_state', sm.state_for(packet.addr2)))
-        
-        # if len(iocs):
-        #     sm = stat_manager.get_instance()
-            # iocs.append('state', sm.state_for(packet.addr2, packet.addr3))
+            apply = eval(str_)
+            if apply:
+                iocs.append((atr.attr, val))
 
+        
         return iocs
 
 class Rule:
