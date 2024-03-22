@@ -1,5 +1,5 @@
 from managers import rule_manager, alert_manager, context_manager
-from modules import modules
+import modules
 import utils.context as context
 
 class FrameProcessor:
@@ -7,28 +7,42 @@ class FrameProcessor:
         self.rm = rule_manager.get()
         self.am = alert_manager.get()
         self.cm = context_manager.get()
+        self.modules_enabled = []
 
     def process(self, frame, source=None, frame_number=None):
 
         # # if wids not in learning mode, check for intrusions
         if not self.cm.learning:
-        #  """ rules temporarly disabled
 
-        #     for rule in self.rm.rules():
-        #         alert =rule.apply(frame, sensor=source, frame_number=frame_number)
-        #         if alert is not None:
-        #             self.am.alert(alert)
-        #
-            for module in modules:
-                alerts = module.on_frame(frame, self.cm, {"source": source, "frame_number": frame_number, "channel": context.get_channel(frame)})
+            # first check all rules
+            for rule in self.rm.rules():
+                alert = rule.apply(frame, sensor=source, frame_number=frame_number)
+                if alert is not None:
+                    self.am.alert(alert)
+        
+            # then check for alerts in modules
+            for module_ in self.modules_enabled:
+                alerts = module_.on_frame(
+                    frame=frame, 
+                    cm=self.cm, 
+                    ctx={
+                        "source": source, 
+                        "frame_number": frame_number, 
+                        "channel": context.get_channel(frame)
+                    }
+                )
                 if len(alerts) is not None:
                     for alert in alerts:
                         self.am.alert(alert)                     
 
-        # self.sm.on_frame(frame, source, frame_number)
+        # update network state
         self.cm.on_frame(frame, source, frame_number)
+
 frame_processor = FrameProcessor()
 
 def get():
     return frame_processor
 
+def init():
+    frame_processor.modules_enabled = modules.enabled()
+    print(frame_processor.modules_enabled)

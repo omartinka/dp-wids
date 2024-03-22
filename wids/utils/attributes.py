@@ -3,6 +3,7 @@ from typing import List, Tuple
 from utils.const import *
 
 import enum
+from utils.config import config
 
 _ATTRS = {
     "radiotap": {
@@ -39,6 +40,7 @@ def translate_attribute(layer, attr):
         data = attrs[layer][attr]
 
     return data, op, neg
+
 
 class State(enum.Enum):
     unknown  =  0

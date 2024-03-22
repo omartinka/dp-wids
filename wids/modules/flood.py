@@ -3,7 +3,7 @@ import utils.context as context
 from utils.const import *
 
 from utils.config import config
-from managers.stat_manager import StatManager
+from managers.context_manager import ContextManager
 from scapy.all import Packet
 
 
@@ -22,22 +22,22 @@ class FloodModule(modules.base.BaseModule):
         self.class_ = 'dos'
         self.severity = 'attack'
 
-    def _is_ssid_flood(self, frame: Packet, sm: StatManager, ctx: dict) -> dict|None:
+    def _is_ssid_flood(self, frame: Packet, cm: ContextManager, ctx: dict) -> dict|None:
         """ Check's whether an adversary is not flooding the medium with
         bogus SSID's """
         alert = None
-        if sm.ssids.get(ctx['channel']) is None:
+        if cm.ssids.get(ctx['channel']) is None:
             return alert
 
-        if len(sm.ssids[ctx['channel']]) > self.max_ssid_count:
+        if len(cm.ssids[ctx['channel']]) > self.max_ssid_count:
             alert = context.alert_base(self, frame, ctx['source'], ctx['frame_number'])
 
         return alert
 
-    def _is_beacon_flood(self, frame: Packet, sm: StatManager, ctx: dict) -> dict|None:
+    def _is_beacon_flood(self, frame: Packet, cm: ContextManager, ctx: dict) -> dict|None:
         """ Check's whether beacon intervals and sequence numbers match. """
         ap_adr  = str(frame.addr2)
-        ap_info = sm.aps.get(ap_adr)
+        ap_info = cm.aps.get(ap_adr)
         
         if ap_info is None:
             return None
@@ -67,7 +67,7 @@ class FloodModule(modules.base.BaseModule):
 
         return alert if raise_alert else None
 
-    def _on_frame(self, frame: Packet, sm: StatManager, ctx: dict) -> list:
+    def _on_frame(self, frame: Packet, cm: ContextManager, ctx: dict) -> list:
         
         alerts = []
         if not (frame.type == 0 and frame.subtype == 8):
@@ -75,18 +75,18 @@ class FloodModule(modules.base.BaseModule):
         
         ctx['channel'] = context.get_channel(frame)
     
-        alert = self._is_ssid_flood(frame, sm, ctx)
+        alert = self._is_ssid_flood(frame, cm, ctx)
         
         if alert is not None:
             alerts.append(alert)
 
-        alert = self._is_beacon_flood(frame, sm, ctx)
+        alert = self._is_beacon_flood(frame, cm, ctx)
         if alert is not None:
             alerts.append(alert)
         
         return alerts
 
-    def create_alert(self, frame: Packet, sm: StatManager, source: str, fidx: int|None) -> dict:
+    def create_alert(self, frame: Packet, cm: ContextManager, source: str, fidx: int|None) -> dict:
         alert = context.alert_base(self, frame, source, fidx)
         return alert
 

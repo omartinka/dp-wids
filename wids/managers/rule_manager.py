@@ -20,6 +20,7 @@ class RuleParser:
             # Skip rule files in ruleignore
             curr_rulefile = rf.strip().split('/')[-1]
             if curr_rulefile in config.ruleignore:
+                log_manager.info(f'ignoring rule file: {curr_rulefile}')
                 continue
 
             # Load rule file
@@ -46,7 +47,6 @@ class RuleParser:
                         log_manager.warn(str(e))
         
         log_manager.info(f'Loaded {len(self._rules)} rules.')
-        
     def rules(self):
         return self._rules
 

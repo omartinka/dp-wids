@@ -1,4 +1,5 @@
 from enum import Enum
+from scapy.all import *
 
 class D11Type(Enum):
     pass    
@@ -32,12 +33,24 @@ MODE_NONE     = 0
 MODE_TRACE    = 1
 MODE_REALTIME = 2
 
-# ??? Stat manager things i think
-DUP_CHECK = 100
-QUEUE_LEN = 10000
-
-# For CTRL+C
-SOCK_TIMEOUT = sock_timeout = 0.2
+# Rule string to layer map
+RULE_LAYER = {
+    "ether": Ether,
+    "dot11": Dot11,
+    "beacon": Dot11Beacon,
+    "assocreq": Dot11AssoReq,
+    "assoresp": Dot11AssoResp,
+    "reassoreq": Dot11ReassoReq,
+    "reassoresp": Dot11ReassoResp,
+    "probereq": Dot11ProbeReq,
+    "proberesp": Dot11ProbeResp,
+    "disass": Dot11Disas,
+    "auth": Dot11Auth,
+    "deauth": Dot11Deauth,
+    "action": Dot11Action,
+    "eapol": EAPOL,
+    "eapol-key": EAPOL_KEY
+}
 
 RSN = {
     0x00: "None",

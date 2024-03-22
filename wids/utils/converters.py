@@ -1,3 +1,7 @@
+from managers.context_manager import context_manager
+from utils.config import config
+
+import datetime
 
 def get_802_11_type_as_str(packet):
     return "beacon"
@@ -55,4 +59,71 @@ def flatten_json(y):
     flatten(y)
     return out
 
+def parse_expr(attr, frame=None, sensor=None):
+    def _normalize(x):
+        if isinstance(x, str):
+            return f"\"{x}\""
+        return x
 
+    repl_ = {}
+    for var in attr.expr.split(' '):
+        if var[0] == '$':
+            var_ = var[1:]
+            if var_ == 'val':
+                repl_[var] = getattr(frame, attr.attr)
+                continue
+            if var_ == 'rssi':
+                repl_[var] = context_manager.rssi(frame.addr2, sensor).last
+                continue
+            if var_ == 'home':
+                repl_[var] = config.home.macs()
+                continue
+            if var_ in dict(config.vars):
+                repl_[var] = config.vars[var_]
+                continue
+
+    res = attr.expr
+    for x in repl_:
+        res = res.replace(x, str(_normalize(repl_[x])))
+
+    return res
+
+def match_time(expr: str, val):
+    def _normalize(x):
+        if isinstance(x, str):
+            return f"\"{x}\""
+        return x
+    
+    repl_ = {}
+    for var in expr.split(' '):
+        if var[0] == '$':
+            var_ = var[1:]
+            if var_ == 'val':
+                repl_[var] = val
+                continue
+            if var_ in dict(config.vars):
+                repl_[var] = config.vars[var_]
+                continue
+            if var_ in dict(config.vars.time):
+                repl_[var] = config.vars.time[var_]
+                continue
+    res = expr
+    for x in repl_:
+        res = res.replace(x, str(_normalize(repl_[x])))
+    return res
+
+def as_var(attr, frame=None, sensor=None):
+    if attr[0] != '$':
+        return attr
+    
+    premade_vars = {
+        'home': config.home.macs(),
+        'rssi': managers.context_manager.get().rssi(frame.addr2, sensor).last
+    }
+
+    attr = attr[1:]
+    if attr in premade_vars:
+        return premade_vars[attr]
+    var = getattr(config.vars, attr)
+    
+    return str(var)

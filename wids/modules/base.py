@@ -1,5 +1,5 @@
 from scapy.all import Packet
-from managers.stat_manager import StatManager
+from managers.context_manager import ContextManager
 
 from managers import log_manager
 import connectors.macapi
@@ -33,9 +33,9 @@ class BaseModule:
             else:
                 log_manager.warn(f"Module {self.name} does not have a `{key}` attribute")
 
-    def _helper_func(self, frame: Packet, sm:StatManager, myvar: str) -> None:
+    def _helper_func(self, frame: Packet, cm:ContextManager, myvar: str) -> None:
         # Create as many helper functions as you want
-        pass
+        return
 
     def _do_check(self, frame):
         if self._last_cooldown is None:
@@ -69,29 +69,29 @@ class BaseModule:
             ok = True
         return ok
 
-    def on_frame(self, frame: Packet, sm: StatManager, ctx: dict) -> list:
+    def on_frame(self, frame: Packet, cm: ContextManager, ctx: dict) -> list:
         """ The whole IDS logic for your module goes here...
         """
 
         if not self.applicable(frame):
             return []
 
-        alerts = self._on_frame(frame, sm, ctx)
+        alerts = self._on_frame(frame, cm, ctx)
         if len(alerts) and self._do_check(frame):
             return alerts
 
         return []
 
-    def _on_frame(self, frame, sm, ctx):
+    def _on_frame(self, frame, cm, ctx):
         return []
 
 
-    def create_alert(self, frame: Packet, sm: StatManager, source: str, fidx: int|None) -> dict:
+    def create_alert(self, frame: Packet, cm: ContextManager, source: str, fidx: int|None) -> dict:
         """ Generates the body of the alert sent to SIEM. Do not modify its base, just add 
         information relevant to this module.
 
         @frame:  the frame that is being analyzed
-        @sm:     stat manager instance, in case it is necessary to log data from it
+        @cm:     stat manager instance, in case it is necessary to log data from it
         @source: where the frame came from, usually sensor id or trace file
         @fidx:   index of frame in source if read from a trace file
         

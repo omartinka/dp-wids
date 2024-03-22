@@ -1,0 +1,77 @@
+rules:
+  # Rule for detecting authentication of non privileged devices
+  # at suspicious time
+  - id: 300
+    'on':
+      - Dot11Auth
+    name: "authentication at suspicious time"
+    class: access
+    type: alert
+    cooldown: 10s
+    msg: Authentication at suspicious time
+    severity: "info"
+    indicators:
+      - id: 0
+        msg: "authentication at suspicious time"
+        'on':
+          - Dot11Auth
+        cooldown: 1s
+        attrs:
+          - layer: Dot11
+            attr: addr1
+            expr: "$val not in $privileged"
+            on_missing: ignore
+        time:
+          - hour:
+              - "$val < 7"
+              - "$val > 20"
+          - month:
+              - "$val == 5"
+            day_month:
+              - "$val in $holiday_may"
+          - day_week:
+              - "$val in $weekend"
+  - id: 301
+    'on':
+      - Dot11Auth
+    name: "rule for testing timestamps"
+    class: access
+    type: alert
+    cooldown: 10s
+    msg: Authentication at suspicious time
+    severity: "info"
+    indicators:
+      - id: 0
+        msg: "authentication at suspicious time"
+        'on':
+          - Dot11Auth
+        cooldown: 1s
+        attrs:
+          - layer: Dot11
+            attr: addr1
+            expr: "$val not in $privileged"
+            on_missing: ignore
+        time:
+          - hour:
+              - "$val < 7"
+              - "$val > 20"
+      - id: 1
+        msg: "authentication on weekend"
+        'on':
+          - Dot11Auth
+        cooldown: 1s
+        time:
+          - day_week:
+              - "$val in $weekend"
+      - id: 2
+        msg: "authentication on holiday"
+        'on':
+          - Dot11Auth
+        cooldown: 1s
+        time:
+          - month:
+              - "$val == 10"
+            day_month:
+              - "$val in [22]"
+
+

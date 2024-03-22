@@ -1,0 +1,95 @@
+rules:
+- id: 100
+  'on':
+  - Dot11AssoReq
+  - Dot11AssoResp
+  - Dot11ReassoReq
+  - Dot11ReassoResp
+  - Dot11Auth
+  - EAPOL
+  class: impersonation
+  name: "rule - spoofed netowrk communication"
+  type: alert
+  msg: client communicating with fake/spoofed network
+  cooldown: 0s
+  severity: "attack"
+  indicators:
+  - id: 0
+    msg: "client attempting to associate to fake network"
+    'on':
+    - Dot11AssoReq
+    - Dot11ReassoReq
+    cooldown: 1s
+    attrs:
+      - layer: Dot11
+        attr: addr1
+        expr: "$val in $home"
+        on_missing: ignore
+      - layer: RadioTap
+        attr: channel
+        expr: "$val not in $home"
+        on_missing: ignore
+
+  - id: 1
+    msg: "client associated to fake network"
+    'on':
+    - Dot11AssoResp
+    - Dot11ReassoResp
+    cooldown: 1s
+    attrs:
+      - layer: Dot11
+        attr: addr2
+        expr: "$val in $home"
+        on_missing: ignore
+      - layer: RadioTap
+        attr: channel
+        expr: "$val not in $home"
+        on_missing: ignore
+  - id: 2
+    msg: "authentication to fake network"
+    'on':
+    - Dot11Auth
+    cooldown: 1s
+    attrs:
+      - layer: Dot11
+        attr: addr1
+        expr: "$val in $home"
+        on_missing: ignore
+      - layer: RadioTap
+        attr: channel
+        expr: "$val not in $home"
+        on_missing: ignore
+  - id: 3
+    msg: "4-Way handshake with fake network"
+    'on':
+      - EAPOL
+    cooldown: 0s
+    attrs:
+      - layer: Dot11
+        attr: addr1
+        expr: "$val in $home"
+        on_missing: ignore
+      - layer: RadioTap
+        attr: channel
+        expr: "$val not in $home"
+        on_missing: ignore
+- id: 101
+  'on':
+    - Dot11
+  class: impersonation
+  type: alert
+  name: "rule - device impersonation"
+  msg: attempt to impersonate a device
+  cooldown: 1s
+  severity: "attack"
+  indicators:
+  - id: 0
+    msg: "fluctuating RSSI - impersonation"
+    'on':
+    - Dot11
+    cooldown: 1s
+    context:
+      rssi:
+        last_jump: ">=10"
+      device:
+        last_seen: ">=10s"

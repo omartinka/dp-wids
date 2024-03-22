@@ -5,7 +5,7 @@ SPECIAL = {
     'ff:ff:ff:ff:ff:ff': "BROADCAST"
 }
 CACHE = {}
-OFFLINE = False
+OFFLINE = True
 
 def get_vendor(mac_addr: str) -> str:
     global OFFLINE

@@ -4,6 +4,8 @@ import modules.kr00k
 import modules.krack
 
 from scapy.all import Packet
+from utils.config import config
+
 import utils.context as ctx
 import connectors.macapi
 
@@ -32,11 +34,14 @@ def init_modules(to_load):
             modules_.append(module_map[name](get_id()))
     modules = modules_
 
-modules = [
-    flood.FloodModule(get_id()),
-    rogueap.RogueApModule(get_id()),
-    kr00k.KrookModule(get_id()),
-    krack.KrackModule(get_id())
-]
+modules = {
+    'flood': flood.FloodModule(get_id()),
+    'rogueap': rogueap.RogueApModule(get_id()),
+    'kr00k': kr00k.KrookModule(get_id()),
+    'krack': krack.KrackModule(get_id())
+}
 
 available = [mm for mm in module_map]
+
+def enabled():
+    return [modules[x] for x in config.modules]

@@ -1,0 +1,61 @@
+rules:
+- id: 200
+  'on':
+  - Dot11Deauth
+  name: "rule - deauth flood"
+  class: dos
+  type: alert
+  cooldown: 10s
+  msg: Dot11Deauthentication attack
+  severity: "attack"
+  indicators:
+  - id: 0
+    msg: "fluctuating rssi"
+    'on':
+    - Dot11Deauth
+    cooldown: 1s
+    attrs:
+      - layer: Dot11
+        attr: addr2
+        expr: "$val in $home"
+        on_missing: ignore
+    context:
+      rssi:
+        jump: "$val >= 10"
+        
+
+  - id: 1
+    msg: "non-ap source, broadcast dst"
+    'on':
+    - Dot11Deauth
+    cooldown: 1s
+    attrs:
+      - layer: Dot11
+        attr: addr2
+        expr: "$val not in $home"
+        on_missing: ignore
+      - layer: Dot11
+        attr: addr1
+        value: "ff:ff:ff:ff:ff:ff"
+        expr: "=="
+        on_missing: ignore
+  - id: 2
+    msg: "broadcast Dot11Deauthentication"
+    'on':
+    - Dot11Deauth
+    cooldown: 1s
+    attrs:
+      - layer: Dot11
+        attr: addr1
+        expr: "$val != \"ff:ff:ff:ff:ff:ff\""
+        on_missing: ignore
+  - id: 3
+    msg: "reason code 7 - aircrack"
+    'on':
+    - Dot11Deauth
+    cooldown: 1s
+    attrs:
+      - layer: Dot11Deauth
+        attr: reason_code
+        expr: "$val == 7"
+        on_missing: ignore

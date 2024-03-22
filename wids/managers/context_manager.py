@@ -30,13 +30,15 @@ import enum
 import time
 import datetime
 import copy
-
+import math
 
 class RSSI:
-    min:  int = 892384
-    max:  int = -772381
-    last: int = 0
-    biggest_jump: int = 0
+    min:  int = 892384    # 
+    max:  int = -772381   # 
+    last: int = 0         # last rssi
+    jump: int = 0         # last jump
+    biggest_jump: int = 0 # biggest jump recorded ever world record woaw
+    ok: bool = False      # false if first meranie true otherwise
 
     def __init__(self, rssi: int):
         self.last = rssi
@@ -50,10 +52,16 @@ class RSSI:
 
         if abs(rssi - self.last) > self.biggest_jump:
             self.biggest_jump = abs(rssi - self.last)
+        
+        if self.ok:
+            self.jump = rssi - self.last
+
+        self.last = rssi
+        self.ok = True
 
 
     def __str__(self):
-        return f"RSSI(min={self.min}, max={self.max}, last={self.last}, jump={self.biggest_jump})"
+        return f"RSSI(min={self.min}, max={self.max}, last={self.last}, jump={self.jump}, big_jump={self.biggest_jump})"
 
 
 class _Device:
@@ -146,6 +154,7 @@ class ContextManager:
         self._devices: dict[str, _Device] = {}
         self._total_frames: int = 0
         self._last_frame_num: int = 0
+        self._started_at: float = time.time() 
 
     def _debug_on(self, n, *args, **kwargs) -> bool:
         if self._last_frame_num == n:
@@ -219,9 +228,7 @@ class ContextManager:
         #     self._networks[mac] = net
 
         # self._update_state(frame)
-
-        if config.debug:
-            self.status()
+        self._total_frames += 1
 
 
     def _update_state(self, frame: Packet, sensor) -> None:
@@ -279,19 +286,26 @@ class ContextManager:
 
             dev_.state.set_state(dst, state_)
 
-    def summary(self):
+    ##                                            ##
+    #  Information functions for user interaction  #
+    ##                                            ##
+
+    def info_devices(self):
         print('Devices:')
         for key in self._devices:
             if len(self._devices[key].state):
                 print(f'{self._devices[key]}')
+    
+    def info_networks(self):
+        print('Networks:')
+        print('  --> TODO <--')
+    
+    def info_summary(self):
+        now = time.time()
+        print(f"analyzed: {self._total_frames}, skipped: {self._last_frame_num - self._total_frames}. total: {self._last_frame_num}, time: {round(now - self._started_at, 2)} seconds.")
 
-    def status(self):
-        self._total_frames += 1
-        X = False
-        # X = self._last_frame_num == 28
-        if self._total_frames % (config.debug_interval) == 0 or X:
-            self.summary()
-            print(f"analyzed: {self._total_frames}, skipped: {self._last_frame_num - self._total_frames}. total: {self._last_frame_num}")
+    def info_config(self):
+        config.summary()
 
     ##                                   ##
     #  Getters used in detection modules  #

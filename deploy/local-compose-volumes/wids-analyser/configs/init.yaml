@@ -6,6 +6,8 @@ app:
 
   debug_sum_interval: 10000
 
+  interactive: true
+
   # Mode of operation
   # 1 - load from trace analysis
   # 2 - real time
@@ -80,18 +82,23 @@ wids:
   # Path to a file containing rules
   # TODO: maybe specify rule dir? or allow rule files as a list...
   # rule_file: "/data/rules/simple.json"
-  rule_file:  "/home/slkd/skola/dp/dp-wids/deploy/local-compose-volumes/wids-analyser/rules/simple.json"
+  # rule_file:  "/home/slkd/skola/dp/dp-wids/deploy/local-compose-volumes/wids-analyser/rules/simple.json"
   rule_dir: "/home/slkd/skola/dp/dp-wids/deploy/local-compose-volumes/wids-analyser/rules"
   ruleignore: 
     - to_ignore.yaml
+    - deauth.yaml
+    - impersonation.yaml
+    - time.yaml
   
 
   # List of detection modules to enable
   # Can be listed using `-l`
-  modules:
+  # modules: []  
+  modules: 
     - "flood"
-    - "rogueap"
     - "kr00k"
+    - "krack"
+    - "rogueap"
 
   # The duration of 'learning' period, where the WIDS learns base values
   # used in intrusion detection. Overriden by "profile" option
@@ -119,3 +126,39 @@ wids:
 
     # 
 
+
+# Config for custom variables
+vars:
+
+  # Whitelisted mac addresses
+  whitelist: []
+
+  # Blacklisted mac addresses
+  blacklist:
+    - "00:00:00:00:00:02"
+    - "00:00:00:00:00:03"
+
+  # logical grouping of devices for some rules
+  privileged:
+    - "00:00:00:00:00:01"
+
+
+  # Put your variables that should be parsed in "time" part of rule indicators here
+  time:
+    holiday_may:
+      - 1
+      - 8
+    weekend:
+      - 'saturday'
+      - 'sunday'
+
+  # Put your variables here
+  # reference them in rules using
+  # $vars.myvar
+  #
+  # Example: $vars.whitelist
+  #
+  # Use in custom modules using
+  # config.vars
+  #
+  # Example: config.vars.whitelist

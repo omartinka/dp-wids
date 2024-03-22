@@ -1,11 +1,11 @@
 #! /usr/bin/env python3
 
+import utils.context as ctx
 import managers
 
 from analyze.wids import Wids
 from utils.arguments import parse_args
 
-import utils.context as ctx
 import time, sys
 
 def main():

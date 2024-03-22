@@ -102,7 +102,6 @@ class AlertManager:
         return True
 
     def _alert(self, data, level='alert'):
-        
         # resolve connector attributes
         if '_to_resolve' in data:
             for item in data['_to_resolve']:
@@ -114,7 +113,7 @@ class AlertManager:
                     data[key] = getattr(connector, resolver['func'])(val)
                 except Exception as e:
                     lm.warn(f'[WARN] Failed to resolve connector: (cls) `{resolver["connector"]}` (fun) `{resolver["func"]}`')
-        
+
         # Clean up
         del data['_to_resolve']
 
@@ -126,16 +125,26 @@ class AlertManager:
             ts = data['timestamp']
             lm.warn(f'[WARN] could not parse timestamp: [{ts}]')
 
+        try:
+            as_json = json.dumps(data)
+        except:
+            lm.error('[very bad!!] could not parse data to json!')
+            return
+
         for node in self.tcp_nodes:
             try:
                 node.log(level, data)
             except:
                 lm.warn(f'connection to {node.name} broken!')
+
         if config.output_file and self.write_to:
-            self.write_to.write(json.dumps(data) + '\n')
-        
+            try:
+                self.write_to.write(as_json + '\n')
+            except:
+                lm.error('could not write to file!')
+
         if config.verbose:
-            print(json.dumps(data))
+            print(as_json)
 
     def alert(self, data, level='alert'):
         """ Generates an alert. 

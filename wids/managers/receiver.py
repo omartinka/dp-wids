@@ -70,6 +70,9 @@ class DataReceiver:
                 # Exit the infinity loop
                 return
 
+    def kill(self):
+        self.shutdown_flag.set()
+
     def _handle(self, client_sock):
         client_sock.settimeout(config.sock_timeout)
 
